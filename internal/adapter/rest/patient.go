@@ -17,11 +17,12 @@ func SetHandler(e *echo.Echo, svc ports.PatientService) {
 	e.GET("/patients", p.getPatients)
 }
 
-func (h *PatientHandler) getPatients(c echo.Context) error {
-	ctx := c.Request().Context()
+func (h *PatientHandler) getPatients(context echo.Context) error {
+	ctx := context.Request().Context()
 	patients, err := h.PatientService.GetPatients(ctx)
 	if err != nil {
-		return c.JSON(500, err)
+		return context.JSON(500, err)
 	}
-	return c.JSON(200, patients)
+
+	return context.JSON(200, patients)
 }

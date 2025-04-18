@@ -1,0 +1,17 @@
+name: Test - data extract
+version: '2'
+
+testcases:
+  - name: list all existing patients
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/patients"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 1
+          - result.bodyjson.__Type__ ShouldEqual Array
+          - result.bodyjson.bodyjson0.id ShouldEqual 0
+          - result.bodyjson.bodyjson0.name ShouldEqual John Doe
+          - result.bodyjson.bodyjson0.email ShouldEqual jd@gmail.com
+
