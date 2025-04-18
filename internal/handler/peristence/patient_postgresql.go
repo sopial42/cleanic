@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"runtime"
 	"time"
 
@@ -55,5 +56,24 @@ func (r *PostgresPatientRepository) ListPatients(ctx context.Context) ([]domain.
 		return nil, fmt.Errorf("err: %v", err)
 	}
 
-	return ToDomainList(patientDAOs), nil
+	return patientFromDAOsToDomains(patientDAOs), nil
+}
+
+func (r *PostgresPatientRepository) InsertPatient(ctx context.Context, patient domain.Patient) (domain.Patient, error) {
+	patientDAO := patientFromDomainToDAO(patient)
+
+	log.Printf("Inserting patient: %v", patientDAO)
+	_, err := r.clientDB.NewInsert().
+		Model(&patientDAO).
+		Returning("*").
+		Exec(ctx)
+	if err != nil {
+		return domain.Patient{}, fmt.Errorf("err: %v", err)
+	}
+
+	if patientDAO.ID == 0 {
+		return domain.Patient{}, fmt.Errorf("unable to create a new patient: %v", patientDAO)
+	}
+
+	return patientFromDAOToDomain(patientDAO), nil
 }

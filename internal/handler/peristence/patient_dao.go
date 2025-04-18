@@ -7,13 +7,13 @@ import (
 
 type patientDAO struct {
 	bun.BaseModel `bun:"table:patient"`
-	ID            int64  `bun:"id"`
+	ID            int64  `bun:"id,autoincrement"`
 	Firstname     string `bun:"firstname"`
 	Lastname      string `bun:"lastname"`
 	Email         string `bun:"email"`
 }
 
-func (p *patientDAO) ToDomain() domain.Patient {
+func patientFromDAOToDomain(p patientDAO) domain.Patient {
 	return domain.Patient{
 		ID:        p.ID,
 		Firstname: p.Firstname,
@@ -21,7 +21,7 @@ func (p *patientDAO) ToDomain() domain.Patient {
 		Email:     p.Email,
 	}
 }
-func FromDomain(p domain.Patient) patientDAO {
+func patientFromDomainToDAO(p domain.Patient) patientDAO {
 	return patientDAO{
 		ID:        p.ID,
 		Firstname: p.Firstname,
@@ -29,17 +29,18 @@ func FromDomain(p domain.Patient) patientDAO {
 		Email:     p.Email,
 	}
 }
-func FromDomainList(p []domain.Patient) []patientDAO {
+func patientFromDomainsToDAOs(p []domain.Patient) []patientDAO {
 	var patientDAOs []patientDAO
 	for _, patient := range p {
-		patientDAOs = append(patientDAOs, FromDomain(patient))
+		patientDAOs = append(patientDAOs, patientFromDomainToDAO(patient))
 	}
 	return patientDAOs
 }
-func ToDomainList(p []patientDAO) []domain.Patient {
+
+func patientFromDAOsToDomains(pDAOs []patientDAO) []domain.Patient {
 	var patients []domain.Patient
-	for _, patient := range p {
-		patients = append(patients, patient.ToDomain())
+	for _, pDAO := range pDAOs {
+		patients = append(patients, patientFromDAOToDomain(pDAO))
 	}
 	return patients
 }

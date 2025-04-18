@@ -8,4 +8,5 @@ import (
 
 type PatientService interface {
 	GetPatients(ctx context.Context) ([]model.Patient, error)
+	CreatePatient(ctx context.Context, patient model.Patient) (model.Patient, error)
 }

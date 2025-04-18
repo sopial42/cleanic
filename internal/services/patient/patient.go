@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domain "github.com/kotai-tech/server/internal/domain"
+	model "github.com/kotai-tech/server/internal/domain"
 	in "github.com/kotai-tech/server/internal/port/in"
 	out "github.com/kotai-tech/server/internal/port/out"
 )
@@ -25,4 +26,13 @@ func (p *Patient) GetPatients(ctx context.Context) ([]domain.Patient, error) {
 	}
 
 	return patients, nil
+}
+
+func (p *Patient) CreatePatient(ctx context.Context, patient model.Patient) (domain.Patient, error) {
+	patientCreated, err := p.PatientRepository.InsertPatient(ctx, patient)
+	if err != nil {
+		return domain.Patient{}, err
+	}
+
+	return patientCreated, nil
 }

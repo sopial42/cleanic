@@ -1,0 +1,82 @@
+name: Test - data extract
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../testData/schemas/
+        folder: ../testData/fixtures/patient
+        retry: 10
+  - name: create two new patient
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/patient"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "firstname": "Axel",
+            "lastname": "Doe",
+            "email": "ad@gmail.com"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 201
+          - result.bodyjson ShouldHaveLength 4
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.firstname ShouldEqual Axel
+          - result.bodyjson.lastname ShouldEqual Doe
+          - result.bodyjson.email ShouldEqual ad@gmail.com
+      - type: http
+        method: POST
+        url: "{{.url}}/patient"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "firstname": "Camille",
+            "lastname": "Doe",
+            "email": "cd@gmail.com"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 201
+          - result.bodyjson ShouldHaveLength 4
+          - result.bodyjson.id ShouldEqual 10002
+          - result.bodyjson.firstname ShouldEqual Camille
+          - result.bodyjson.lastname ShouldEqual Doe
+          - result.bodyjson.email ShouldEqual cd@gmail.com
+  - name: list all existing patients
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/patients"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 2
+          - result.bodyjson.__Type__ ShouldEqual Array
+          - result.bodyjson.bodyjson0.id ShouldEqual 10001
+          - result.bodyjson.bodyjson0.firstname ShouldEqual Axel
+          - result.bodyjson.bodyjson0.lastname ShouldEqual Doe
+          - result.bodyjson.bodyjson0.email ShouldEqual ad@gmail.com
+          - result.bodyjson.bodyjson1.id ShouldEqual 10002
+          - result.bodyjson.bodyjson1.firstname ShouldEqual Camille
+          - result.bodyjson.bodyjson1.lastname ShouldEqual Doe
+          - result.bodyjson.bodyjson1.email ShouldEqual cd@gmail.com
+  - name: reject patient altrady exists
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/patient"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "firstname": "Axel",
+            "lastname": "Doe",
+            "email": "ad@gmail.com"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
