@@ -2,12 +2,12 @@ version: '3.9'
 
 services:
   db:
-    image: postgres:14
+    image: postgres:15
     container_name: db
     ports:
     - 5432:5432
     environment:
     - POSTGRES_USER=kotai
     - POSTGRES_PASSWORD=kotai
-    - POSTGRES_DB=patient
+    - POSTGRES_DB=kotai
 

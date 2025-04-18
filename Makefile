@@ -53,3 +53,8 @@ venom: $(VENOM)
 	$(VENOM) run $(test_suite) \
 	--output-dir=./build \
 	--var-from-file "$$venom_var_file"
+
+dbtty:
+	@echo "[INFO] Login to psql inside db container"
+	@echo "[INFO] exemple command: \dt;"
+	@docker exec -it db psql -U kotai

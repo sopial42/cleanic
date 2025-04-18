@@ -1,7 +1,7 @@
 package rest
 
 import (
-	ports "github.com/kotai-tech/server/internal/port"
+	ports "github.com/kotai-tech/server/internal/port/in"
 	"github.com/labstack/echo/v4"
 )
 
