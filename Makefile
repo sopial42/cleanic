@@ -28,10 +28,22 @@ $(VENOM):
 	curl -sSfLo $(VENOM) https://github.com/ovh/venom/releases/download/$(VENOM_VERSION)/venom.$(OS)-$(ARCH)
 	chmod +x $(VENOM)
 
+
+golangci_lint_version := 2.1.2
+GOLANGCILINT := $(GO_PATH)/bin/golangci-lint-$(golangci_lint_version)
+$(GOLANGCILINT):
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v$(golangci_lint_version)
+	cp $(GO_PATH)/bin/golangci-lint $(GOLANGCILINT)
+
 build:
 	@echo "🔸 Build test binary...";
 	@go build -buildvcs=false -race -o build/$(APPNAME).test ./cmd
 	@echo "🔸 Test binary built";
+
+lint: $(GOLANGCILINT)
+	@echo "🔸 Run golangci-lint...";
+	@$(GOLANGCILINT) run --timeout 1m ./...
+	@echo "🔸 golangci-lint done";
 
 run: $(REFLEX)
 	$(REFLEX) -r '\.go$$' --start-service -- \
