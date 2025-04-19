@@ -1,5 +1,6 @@
 APPNAME := server
 GO_PATH := $(shell go env GOPATH)
+COVERDIR := ./build/coverdata
 test_suite_dir := ./tests/venom
 integration_test_suite := "**/*.venom.yml"
 
@@ -35,15 +36,18 @@ $(GOLANGCILINT):
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v$(golangci_lint_version)
 	cp $(GO_PATH)/bin/golangci-lint $(GOLANGCILINT)
 
+.PHONY: build
 build:
 	@echo "🔸 Build test binary...";
-	@go build -buildvcs=false -race -o build/$(APPNAME).test ./cmd
-	@echo "🔸 Test binary built";
+# Use go test and '-c' arg to build the binary using the main_test.go
+# the main_test.go is used by integration tests to include venom tests in coverage
+	@go test -c -tags=integration -buildvcs=false -coverpkg="./..." -race -o build/$(APPNAME).test ./cmd
+	@echo "🔸 Done";
 
 lint: $(GOLANGCILINT)
 	@echo "🔸 Run golangci-lint...";
 	@$(GOLANGCILINT) run --timeout 1m ./...
-	@echo "🔸 golangci-lint done";
+	@echo "🔸 Done";
 
 run: $(REFLEX)
 	$(REFLEX) -r '\.go$$' --start-service -- \
@@ -52,14 +56,19 @@ run: $(REFLEX)
 dependencies:
 	docker compose up --remove-orphans -d
 
-# Integration environment run all test independently using consistent test data
 integration: env=integration
-integration:
+integration: build $(VENOM)
+	@echo "🔸 Start server...";
+	@./build/$(APPNAME).test -test.coverprofile=./build/server.venom.cover.out > ./build/$(APPNAME).log 2>&1 &
+	@sleep 5;
 	@echo "🔸 Run integration tests...";
-	@$(MAKE) dev_reset_db=true env=$(env) test_suite="$(test_suite_dir)/**/$(integration_test_suite)" venom
-	@echo "🔸 Integration tests done";
+	@$(MAKE) env=$(env) test_suite="$(test_suite_dir)/**/$(integration_test_suite)" venom;
+	@echo "🔸 Kill server";
+	@pkill $(APPNAME).test 2> /dev/null || true;
+	@echo "🔸 Generate coverage report";
+	@go tool cover -html=./build/server.venom.cover.out -o ./build/server.venom.cover.html;
+	@echo "🔸 Done";
 
-# VENOM_PRESERVE_CASE=ON should be ON by default on venom 1.2.0
 venom: $(VENOM)
 	venom_var_file="./tests/venom/vars/$(env).yml"; \
 	$(VENOM) run $(test_suite) \
