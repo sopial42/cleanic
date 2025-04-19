@@ -1,0 +1,80 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Build
+      run: make build
+
+    - name: Lint
+      run: make lint
+
+    - name: Upload test binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-binary
+        path: build/server.test
+
+  integration-tests:
+    needs: build
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: kotai
+          POSTGRES_PASSWORD: kotai
+          POSTGRES_DB: kotai
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Wait for DB to be ready
+      run: |
+        echo "Waiting for Postgres to be ready..."
+        sleep 10
+
+    - name: Run integration tests
+      env:
+        DATABASE_URL: postgres://kotai:kotai@localhost:5432/kotai?sslmode=disable
+      run: make integration
+
+    - name: Upload logs artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: server-logs
+        path: build/server.log
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: build/server.venom.cover.out
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
