@@ -3,4 +3,4 @@
 
 # Patient management server
 
-A simple patient management server in golang following clean arrchitecture principles.
+A simple patient management server in golang following clean architecture principles.

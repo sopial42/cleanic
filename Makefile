@@ -1,4 +1,4 @@
-APPNAME := server
+APPNAME := kotai
 GO_PATH := $(shell go env GOPATH)
 COVERDIR := ./build/coverdata
 test_suite_dir := ./tests/venom
@@ -57,7 +57,13 @@ dependencies:
 	docker compose up --remove-orphans -d
 
 integration: env=integration
-integration: build $(VENOM)
+integration:
+	@echo "🔸 Run integration tests...";
+	@$(MAKE) env=$(env) test_suite="$(test_suite_dir)/**/$(integration_test_suite)" venom;
+	@echo "🔸 Done";
+
+ci-integration: env=integration
+ci-integration: build $(VENOM)
 	@echo "🔸 Start server...";
 	@./build/$(APPNAME).test -test.coverprofile=./build/server.venom.cover.out > ./build/$(APPNAME).log 2>&1 &
 	@sleep 5;
@@ -74,6 +80,24 @@ venom: $(VENOM)
 	$(VENOM) run $(test_suite) \
 	--output-dir=./build \
 	--var-from-file "$$venom_var_file"
+
+package:
+	@echo "🔸 Build amd64 binary...";
+	@env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/$(APPNAME).amd64 ./cmd
+	@echo "🔸 Build arm64 binary...";
+	@env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o build/$(APPNAME).arm64 ./cmd
+	@echo "🔸 Done";
+
+release: package
+ifndef tag
+	$(error tag is not set)
+endif
+	@echo "🔸 Tag is: $(tag)";
+	@echo "🔸 Build & push (amd/arm)64 docker image";
+	@docker buildx build \
+	--build-arg APPNAME=$(APPNAME) \
+	--platform linux/amd64,linux/arm64 \
+	--push -t adhondt42/$(APPNAME):$(tag) -t adhondt42/$(APPNAME):latest .
 
 dbtty:
 	@echo "[INFO] Login to psql inside db container"

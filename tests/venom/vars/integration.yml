@@ -1,2 +1,2 @@
-url: http://localhost:8080
+url: http://localhost:8080/api/v1
 pgsql_dsn: postgres://kotai:kotai@localhost:5432/kotai?sslmode=disable

@@ -19,11 +19,15 @@ func SetHandler(e *echo.Echo, svc ports.PatientService) {
 		PatientService: svc,
 	}
 
-	e.GET("/patients", p.getPatients)
-	e.GET("/patient/:id", p.getPatient)
-	e.POST("/patient", p.createPatient)
-	e.PATCH("/patient", p.updatePatient)
-	e.DELETE("/patient/:id", p.deletePatient)
+
+	apiV1 := e.Group("/api/v1")
+	{
+		apiV1.GET("/patients", p.getPatients)
+		apiV1.GET("/patient/:id", p.getPatient)
+		apiV1.POST("/patient", p.createPatient)
+		apiV1.PATCH("/patient", p.updatePatient)
+		apiV1.DELETE("/patient/:id", p.deletePatient)
+	}
 }
 
 func (h *PatientHandler) getPatients(context echo.Context) error {
