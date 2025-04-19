@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 
@@ -59,10 +58,27 @@ func (r *PostgresPatientRepository) ListPatients(ctx context.Context) ([]domain.
 	return patientFromDAOsToDomains(patientDAOs), nil
 }
 
+func (r *PostgresPatientRepository) GetPatientByID(ctx context.Context, id int64) (domain.Patient, error) {
+	var patientDAO patientDAO
+
+	err := r.clientDB.NewSelect().
+		Model(&patientDAO).
+		Where("id = ?", id).
+		Scan(ctx)
+	if err != nil {
+		return domain.Patient{}, fmt.Errorf("err: %v", err)
+	}
+
+	if patientDAO.ID == 0 {
+		return domain.Patient{}, fmt.Errorf("patient not found with id: %d", id)
+	}
+
+	return patientFromDAOToDomain(patientDAO), nil
+}
+
 func (r *PostgresPatientRepository) InsertPatient(ctx context.Context, patient domain.Patient) (domain.Patient, error) {
 	patientDAO := patientFromDomainToDAO(patient)
 
-	log.Printf("Inserting patient: %v", patientDAO)
 	_, err := r.clientDB.NewInsert().
 		Model(&patientDAO).
 		Returning("*").
@@ -76,4 +92,36 @@ func (r *PostgresPatientRepository) InsertPatient(ctx context.Context, patient d
 	}
 
 	return patientFromDAOToDomain(patientDAO), nil
+}
+
+func (r *PostgresPatientRepository) UpdatePatient(ctx context.Context, patient domain.Patient) (domain.Patient, error) {
+	patientDAO := patientFromDomainToDAO(patient)
+
+	_, err := r.clientDB.NewUpdate().
+		Model(&patientDAO).
+		Where("id = ?", patient.ID).
+		OmitZero().
+		Returning("*").
+		Exec(ctx)
+	if err != nil {
+		return domain.Patient{}, fmt.Errorf("unable to request patient update: %v", err)
+	}
+
+	if patientDAO.ID == 0 {
+		return domain.Patient{}, fmt.Errorf("unable to update any patient: %v", patientDAO)
+	}
+
+	return patientFromDAOToDomain(patientDAO), nil
+}
+
+func (r *PostgresPatientRepository) DeletePatient(ctx context.Context, id int64) error {
+	_, err := r.clientDB.NewDelete().
+		Model((*patientDAO)(nil)).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to delete patient id: %d, err: %v", id, err)
+	}
+
+	return nil
 }

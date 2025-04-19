@@ -1,6 +1,9 @@
 package rest
 
 import (
+	"fmt"
+	"net/http"
+
 	domain "github.com/kotai-tech/server/internal/domain"
 	ports "github.com/kotai-tech/server/internal/port/in"
 	"github.com/labstack/echo/v4"
@@ -17,18 +20,45 @@ func SetHandler(e *echo.Echo, svc ports.PatientService) {
 	}
 
 	e.GET("/patients", p.getPatients)
+	e.GET("/patient/:id", p.getPatient)
 	e.POST("/patient", p.createPatient)
+	e.PATCH("/patient", p.updatePatient)
+	e.DELETE("/patient/:id", p.deletePatient)
 }
 
 func (h *PatientHandler) getPatients(context echo.Context) error {
 	ctx := context.Request().Context()
 	patients, err := h.PatientService.GetPatients(ctx)
 	if err != nil {
-		log.Error("Error get patient: ", err)
-		return context.JSON(500, err)
+		log.Error("Error get patients: ", err)
+		return context.JSON(http.StatusInternalServerError, err)
 	}
 
-	return context.JSON(200, patients)
+	return context.JSON(http.StatusOK, patients)
+}
+
+func (h *PatientHandler) getPatient(context echo.Context) error {
+	ctx := context.Request().Context()
+
+	id := context.Param("id")
+	if id == "" {
+		return context.JSON(http.StatusBadRequest, "id is required")
+	}
+
+	var patientID int64
+	_, err := fmt.Sscanf(id, "%d", &patientID)
+	if err != nil {
+		log.Error("Error converting id to int64: ", err)
+		return context.JSON(http.StatusBadRequest, "invalid id format")
+	}
+
+	patient, err := h.PatientService.GetPatientByID(ctx, patientID)
+	if err != nil {
+		log.Error("Error get patient: ", err)
+		return context.JSON(http.StatusInternalServerError, err)
+	}
+
+	return context.JSON(http.StatusOK, patient)
 }
 
 func (h *PatientHandler) createPatient(context echo.Context) error {
@@ -37,14 +67,57 @@ func (h *PatientHandler) createPatient(context echo.Context) error {
 	patient := new(domain.Patient)
 	if err := context.Bind(patient); err != nil {
 		log.Error("Error bind patient: ", err)
-		return context.JSON(400, err)
+		return context.JSON(http.StatusBadRequest, err)
 	}
 
 	patientCreated, err := h.PatientService.CreatePatient(ctx, *patient)
 	if err != nil {
 		log.Error("Error creating patient: ", err)
-		return context.JSON(500, err)
+		return context.JSON(http.StatusInternalServerError, err)
 	}
 
-	return context.JSON(201, patientCreated)
+	return context.JSON(http.StatusCreated, patientCreated)
+}
+
+func (h *PatientHandler) updatePatient(context echo.Context) error {
+	ctx := context.Request().Context()
+
+	patient := new(domain.Patient)
+	if err := context.Bind(patient); err != nil {
+		log.Error("Error bind patient: ", err)
+		return context.JSON(http.StatusBadRequest, err)
+	}
+
+	patientUpdated, err := h.PatientService.UpdatePatient(ctx, *patient)
+	if err != nil {
+		log.Error("Error updating patient: ", err)
+		return context.JSON(http.StatusInternalServerError, err)
+	}
+
+	return context.JSON(http.StatusOK, patientUpdated)
+}
+
+func (h *PatientHandler) deletePatient(context echo.Context) error {
+	ctx := context.Request().Context()
+
+	id := context.Param("id")
+	if id == "" {
+		return context.JSON(http.StatusBadRequest, "id is required")
+	}
+
+	// Convert id to int64
+	var patientID int64
+	_, err := fmt.Sscanf(id, "%d", &patientID)
+	if err != nil {
+		log.Error("Error converting id to int64: ", err)
+		return context.JSON(http.StatusBadRequest, "invalid id format")
+	}
+
+	err = h.PatientService.DeletePatient(ctx, patientID)
+	if err != nil {
+		log.Error("Error deleting patient: ", err)
+		return context.JSON(http.StatusInternalServerError, err)
+	}
+
+	return context.NoContent(http.StatusNoContent)
 }

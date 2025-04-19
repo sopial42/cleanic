@@ -10,7 +10,7 @@ testcases:
         migrations: ../testData/schemas/
         folder: ../testData/fixtures/patient
         retry: 10
-  - name: create two new patient
+  - name: CREATE two new patient
     steps:
       - type: http
         method: POST
@@ -48,25 +48,7 @@ testcases:
           - result.bodyjson.firstname ShouldEqual Camille
           - result.bodyjson.lastname ShouldEqual Doe
           - result.bodyjson.email ShouldEqual cd@gmail.com
-  - name: list all existing patients
-    steps:
-      - type: http
-        method: GET
-        url: "{{.url}}/patients"
-        assertions:
-          - result.statuscode ShouldEqual 200
-          - result.bodyjson ShouldHaveLength 2
-          - result.bodyjson.__Type__ ShouldEqual Array
-          - result.bodyjson.bodyjson0.id ShouldEqual 10001
-          - result.bodyjson.bodyjson0.firstname ShouldEqual Axel
-          - result.bodyjson.bodyjson0.lastname ShouldEqual Doe
-          - result.bodyjson.bodyjson0.email ShouldEqual ad@gmail.com
-          - result.bodyjson.bodyjson1.id ShouldEqual 10002
-          - result.bodyjson.bodyjson1.firstname ShouldEqual Camille
-          - result.bodyjson.bodyjson1.lastname ShouldEqual Doe
-          - result.bodyjson.bodyjson1.email ShouldEqual cd@gmail.com
-  - name: reject patient altrady exists
-    steps:
+      # patient already exists
       - type: http
         method: POST
         url: "{{.url}}/patient"
@@ -80,3 +62,80 @@ testcases:
           }
         assertions:
           - result.statuscode ShouldEqual 500
+  - name: READ patients
+    steps:
+      #  Read all
+      - type: http
+        method: GET
+        url: "{{.url}}/patients"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 2
+          - result.bodyjson.__Type__ ShouldEqual Array
+          # bodyjson0
+          - result.bodyjson.bodyjson0 ShouldHaveLength 4
+          - result.bodyjson.bodyjson0.id ShouldEqual 10001
+          - result.bodyjson.bodyjson0.firstname ShouldEqual Axel
+          - result.bodyjson.bodyjson0.lastname ShouldEqual Doe
+          - result.bodyjson.bodyjson0.email ShouldEqual ad@gmail.com
+          # bodyjson1
+          - result.bodyjson.bodyjson1 ShouldHaveLength 4
+          - result.bodyjson.bodyjson1.id ShouldEqual 10002
+          - result.bodyjson.bodyjson1.firstname ShouldEqual Camille
+          - result.bodyjson.bodyjson1.lastname ShouldEqual Doe
+          - result.bodyjson.bodyjson1.email ShouldEqual cd@gmail.com
+      #  Read by id
+      - type: http
+        method: GET
+        url: "{{.url}}/patient/10001"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 4
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.firstname ShouldEqual Axel
+          - result.bodyjson.lastname ShouldEqual Doe
+          - result.bodyjson.email ShouldEqual ad@gmail.com
+  - name: UPDATE existing patient on email and lastname only
+    steps:
+      - type: http
+        method: PATCH
+        url: "{{.url}}/patient"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "id": 10001,
+            "lastname": "Air",
+            "email": "aa@gmail.com"
+          }
+        assertions: &AxelAir
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 4
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.firstname ShouldEqual Axel
+          - result.bodyjson.lastname ShouldEqual Air
+          - result.bodyjson.email ShouldEqual aa@gmail.com
+      - type: http
+        method: GET
+        url: "{{.url}}/patient/10001"
+        assertions: *AxelAir
+  - name: DELETE a patient
+    steps:
+      - type: http
+        method: DELETE
+        url: "{{.url}}/patient/10001"
+        headers:
+          Content-Type: application/json
+        assertions:
+          - result.statuscode ShouldEqual 204
+          - result.bodyjson ShouldHaveLength 0
+      - type: http
+        method: GET
+        url: "{{.url}}/patients"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 1
+          - result.bodyjson.__Type__ ShouldEqual Array
+          # bodyjson0
+          - result.bodyjson.bodyjson0 ShouldHaveLength 4
+          - result.bodyjson.bodyjson0.id ShouldEqual 10002
