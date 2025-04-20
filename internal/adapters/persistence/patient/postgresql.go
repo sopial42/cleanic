@@ -12,9 +12,9 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 
-	"github.com/kotai-tech/server/internal/config"
-	patient "github.com/kotai-tech/server/internal/domains/patient"
-	patientSVC "github.com/kotai-tech/server/internal/services/patient"
+	"github.com/sopial42/cleanic/internal/config"
+	patient "github.com/sopial42/cleanic/internal/domains/patient"
+	patientSVC "github.com/sopial42/cleanic/internal/services/patient"
 )
 
 type pgPersistence struct {

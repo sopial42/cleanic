@@ -1,4 +1,4 @@
-module github.com/kotai-tech/server
+module github.com/sopial42/cleanic
 
 go 1.24.0
 

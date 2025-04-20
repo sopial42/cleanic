@@ -1,4 +1,4 @@
-name: Kotai server CI
+name: Cleanic server CI
 
 on:
   push:
@@ -25,9 +25,9 @@ jobs:
       db:
         image: postgres:15
         env:
-          POSTGRES_USER: kotai
-          POSTGRES_PASSWORD: kotai
-          POSTGRES_DB: kotai
+          POSTGRES_USER: cleanic
+          POSTGRES_PASSWORD: cleanic
+          POSTGRES_DB: cleanic
         ports:
           - 5432:5432
     steps:
@@ -42,7 +42,7 @@ jobs:
           sleep 10
       - name: Run integration tests
         env:
-          DATABASE_URL: postgres://kotai:kotai@localhost:5432/kotai?sslmode=disable
+          DATABASE_URL: postgres://cleanic:cleanic@localhost:5432/cleanic?sslmode=disable
         run: make ci-integration
       - name: Upload logs artifact
         uses: actions/upload-artifact@v4

@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   db:
     image: postgres:15
@@ -7,17 +5,6 @@ services:
     ports:
     - 5432:5432
     environment:
-    - POSTGRES_USER=kotai
-    - POSTGRES_PASSWORD=kotai
-    - POSTGRES_DB=kotai
-
-  # kotai:
-  #   image: docker.io/adhondt42/server:latest
-  #   container_name: kotai
-  #   environment:
-  #     - DB_HOST=db
-  #     - DB_PORT=5432
-  #     - DB_USER=kotai
-  #     - DB_PASSWORD=kotai
-  #     - DB_NAME=kotai
-  #     - PORT=8080
+    - POSTGRES_USER=cleanic
+    - POSTGRES_PASSWORD=cleanic
+    - POSTGRES_DB=cleanic

@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 
-	patient "github.com/kotai-tech/server/internal/domains/patient"
-	patientSVC "github.com/kotai-tech/server/internal/services/patient"
+	patient "github.com/sopial42/cleanic/internal/domains/patient"
+	patientSVC "github.com/sopial42/cleanic/internal/services/patient"
 )
 
 type PatientHandler struct {

@@ -11,10 +11,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	persistence "github.com/kotai-tech/server/internal/adapters/persistence/patient"
-	patientHTTPHandler "github.com/kotai-tech/server/internal/adapters/rest/patient"
-	"github.com/kotai-tech/server/internal/config"
-	patientSVC "github.com/kotai-tech/server/internal/services/patient"
+	persistence "github.com/sopial42/cleanic/internal/adapters/persistence/patient"
+	patientHTTPHandler "github.com/sopial42/cleanic/internal/adapters/rest/patient"
+	"github.com/sopial42/cleanic/internal/config"
+	patientSVC "github.com/sopial42/cleanic/internal/services/patient"
 )
 
 func main() {

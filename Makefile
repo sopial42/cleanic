@@ -1,4 +1,4 @@
-APPNAME := kotai
+APPNAME := cleanic
 GO_PATH := $(shell go env GOPATH)
 COVERDIR := ./build/coverdata
 test_suite_dir := ./tests/venom
@@ -102,4 +102,4 @@ endif
 dbtty:
 	@echo "[INFO] Login to psql inside db container"
 	@echo "[INFO] exemple command: \dt;"
-	@docker exec -it db psql -U kotai
+	@docker exec -it db psql -U cleanic

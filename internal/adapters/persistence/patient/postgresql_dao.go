@@ -3,7 +3,7 @@ package persistence
 import (
 	"github.com/uptrace/bun"
 
-	patient "github.com/kotai-tech/server/internal/domains/patient"
+	patient "github.com/sopial42/cleanic/internal/domains/patient"
 )
 
 type patientDAO struct {

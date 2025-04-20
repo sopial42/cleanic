@@ -3,7 +3,7 @@ package patient
 import (
 	"context"
 
-	patient "github.com/kotai-tech/server/internal/domains/patient"
+	patient "github.com/sopial42/cleanic/internal/domains/patient"
 )
 
 type patientService struct {
