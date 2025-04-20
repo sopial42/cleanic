@@ -1,7 +1,7 @@
-[![Go](https://github.com/sopial42/cleanic/actions/workflows/ci.yml/badge.svg)](https://github.com/sopial42/cleanic/actions/workflows/ci.yml)
+[![Cleanic server CI](https://github.com/sopial42/cleanic/actions/workflows/ci.yml/badge.svg)](https://github.com/sopial42/cleanic/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/sopial42/cleanic/graph/badge.svg?token=NWA2EYXHAW)](https://codecov.io/github/sopial42/cleanic)
 
-# Cleanic is Patient management server
+# Cleanic is a patient management server
 
 A simple patient management server written in Go, following Clean Architecture principles.
 
@@ -9,7 +9,7 @@ A simple patient management server written in Go, following Clean Architecture p
 
 ### Clean Architecture
 
-Clean Architecture principles rely on layers, with dependencies always pointing from outer to inner layers.
+Clean Architecture rely on layers, with dependencies always pointing from outer to inner layers.
 
 Layers described from outer to inner:
 - **Drivers**: External systems that depends and interact with the **Interface Adapters** layer.
