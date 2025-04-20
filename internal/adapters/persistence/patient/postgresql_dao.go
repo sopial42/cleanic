@@ -1,8 +1,9 @@
 package persistence
 
 import (
-	domain "github.com/kotai-tech/server/internal/domain"
 	"github.com/uptrace/bun"
+
+	patient "github.com/kotai-tech/server/internal/domains/patient"
 )
 
 type patientDAO struct {
@@ -13,15 +14,15 @@ type patientDAO struct {
 	Email         string `bun:"email"`
 }
 
-func patientFromDAOToDomain(p patientDAO) domain.Patient {
-	return domain.Patient{
+func patientFromDAOToDomain(p patientDAO) patient.Patient {
+	return patient.Patient{
 		ID:        p.ID,
 		Firstname: p.Firstname,
 		Lastname:  p.Lastname,
 		Email:     p.Email,
 	}
 }
-func patientFromDomainToDAO(p domain.Patient) patientDAO {
+func patientFromDomainToDAO(p patient.Patient) patientDAO {
 	return patientDAO{
 		ID:        p.ID,
 		Firstname: p.Firstname,
@@ -30,15 +31,15 @@ func patientFromDomainToDAO(p domain.Patient) patientDAO {
 	}
 }
 
-func patientFromDAOsToDomains(pDAOs []patientDAO) []domain.Patient {
-	var patients []domain.Patient
+func patientFromDAOsToDomains(pDAOs []patientDAO) []patient.Patient {
+	var patients []patient.Patient
 	for _, pDAO := range pDAOs {
 		patients = append(patients, patientFromDAOToDomain(pDAO))
 	}
 	return patients
 }
 
-// func patientFromDomainsToDAOs(p []domain.Patient) []patientDAO {
+// func patientFromDomainsToDAOs(p []patient.Patient) []patientDAO {
 // 	var patientDAOs []patientDAO
 // 	for _, patient := range p {
 // 		patientDAOs = append(patientDAOs, patientFromDomainToDAO(patient))

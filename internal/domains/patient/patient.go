@@ -1,4 +1,4 @@
-package model
+package patient
 
 type Patient struct {
 	ID        int64  `json:"id"`

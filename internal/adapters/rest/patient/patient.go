@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"net/http"
 
-	domain "github.com/kotai-tech/server/internal/domain"
-	ports "github.com/kotai-tech/server/internal/port/in"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+
+	patient "github.com/kotai-tech/server/internal/domains/patient"
+	patientSVC "github.com/kotai-tech/server/internal/services/patient"
 )
 
 type PatientHandler struct {
-	PatientService ports.PatientService
+	patientSVC.Service
 }
 
-func SetHandler(e *echo.Echo, svc ports.PatientService) {
+func SetHandler(e *echo.Echo, service patientSVC.Service) {
 	p := &PatientHandler{
-		PatientService: svc,
+		service,
 	}
-
 
 	apiV1 := e.Group("/api/v1")
 	{
@@ -32,7 +32,7 @@ func SetHandler(e *echo.Echo, svc ports.PatientService) {
 
 func (h *PatientHandler) getPatients(context echo.Context) error {
 	ctx := context.Request().Context()
-	patients, err := h.PatientService.GetPatients(ctx)
+	patients, err := h.GetPatients(ctx)
 	if err != nil {
 		log.Error("Error get patients: ", err)
 		return context.JSON(http.StatusInternalServerError, err)
@@ -56,7 +56,7 @@ func (h *PatientHandler) getPatient(context echo.Context) error {
 		return context.JSON(http.StatusBadRequest, "invalid id format")
 	}
 
-	patient, err := h.PatientService.GetPatientByID(ctx, patientID)
+	patient, err := h.GetPatientByID(ctx, patientID)
 	if err != nil {
 		log.Error("Error get patient: ", err)
 		return context.JSON(http.StatusInternalServerError, err)
@@ -68,13 +68,13 @@ func (h *PatientHandler) getPatient(context echo.Context) error {
 func (h *PatientHandler) createPatient(context echo.Context) error {
 	ctx := context.Request().Context()
 
-	patient := new(domain.Patient)
-	if err := context.Bind(patient); err != nil {
+	newPatient := new(patient.Patient)
+	if err := context.Bind(newPatient); err != nil {
 		log.Error("Error bind patient: ", err)
 		return context.JSON(http.StatusBadRequest, err)
 	}
 
-	patientCreated, err := h.PatientService.CreatePatient(ctx, *patient)
+	patientCreated, err := h.CreatePatient(ctx, *newPatient)
 	if err != nil {
 		log.Error("Error creating patient: ", err)
 		return context.JSON(http.StatusInternalServerError, err)
@@ -86,13 +86,13 @@ func (h *PatientHandler) createPatient(context echo.Context) error {
 func (h *PatientHandler) updatePatient(context echo.Context) error {
 	ctx := context.Request().Context()
 
-	patient := new(domain.Patient)
+	patient := new(patient.Patient)
 	if err := context.Bind(patient); err != nil {
 		log.Error("Error bind patient: ", err)
 		return context.JSON(http.StatusBadRequest, err)
 	}
 
-	patientUpdated, err := h.PatientService.UpdatePatient(ctx, *patient)
+	patientUpdated, err := h.UpdatePatient(ctx, *patient)
 	if err != nil {
 		log.Error("Error updating patient: ", err)
 		return context.JSON(http.StatusInternalServerError, err)
@@ -117,7 +117,7 @@ func (h *PatientHandler) deletePatient(context echo.Context) error {
 		return context.JSON(http.StatusBadRequest, "invalid id format")
 	}
 
-	err = h.PatientService.DeletePatient(ctx, patientID)
+	err = h.DeletePatient(ctx, patientID)
 	if err != nil {
 		log.Error("Error deleting patient: ", err)
 		return context.JSON(http.StatusInternalServerError, err)

@@ -11,21 +11,21 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	persistence "github.com/kotai-tech/server/internal/adapters/persistence/patient"
+	patientHTTPHandler "github.com/kotai-tech/server/internal/adapters/rest/patient"
 	"github.com/kotai-tech/server/internal/config"
-	persistence "github.com/kotai-tech/server/internal/handler/peristence"
-	"github.com/kotai-tech/server/internal/handler/rest"
 	patientSVC "github.com/kotai-tech/server/internal/services/patient"
 )
 
 func main() {
 	config := config.Load()
 
-	patientRepository := persistence.NewPGClient(config.DBConfig)
-	patientService := patientSVC.NewService(patientRepository)
+	patientPersistence := persistence.NewPGClient(config.DBConfig)
+	patientService := patientSVC.NewPatientService(patientPersistence)
 
 	engine := echo.New()
 	engine.Use(middleware.Logger())
-	rest.SetHandler(engine, patientService)
+	patientHTTPHandler.SetHandler(engine, patientService)
 
 	go func() {
 		if err := engine.Start(":8080"); err != nil {
