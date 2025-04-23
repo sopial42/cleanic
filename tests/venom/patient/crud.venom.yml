@@ -1,4 +1,4 @@
-name: Test - data extract
+name: Test - CRUD patient
 version: '2'
 
 testcases:

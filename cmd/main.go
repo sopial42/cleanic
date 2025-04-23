@@ -11,21 +11,31 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	persistence "github.com/sopial42/cleanic/internal/adapters/persistence/patient"
+	persistence "github.com/sopial42/cleanic/internal/adapters/persistence"
+	patientPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/patient"
+	userPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/user"
 	patientHTTPHandler "github.com/sopial42/cleanic/internal/adapters/rest/patient"
+	userHTTPHandler "github.com/sopial42/cleanic/internal/adapters/rest/user"
 	"github.com/sopial42/cleanic/internal/config"
 	patientSVC "github.com/sopial42/cleanic/internal/services/patient"
+	userSVC "github.com/sopial42/cleanic/internal/services/user"
 )
 
 func main() {
 	config := config.Load()
+	pgClient := persistence.NewPGClient(config.DBConfig)
 
-	patientPersistence := persistence.NewPGClient(config.DBConfig)
+	patientPersistence := patientPersistence.NewPGClient(pgClient)
 	patientService := patientSVC.NewPatientService(patientPersistence)
+
+	userPersistence := userPersistence.NewPGClient(pgClient)
+	userService := userSVC.NewUserService(userPersistence)
 
 	engine := echo.New()
 	engine.Use(middleware.Logger())
+
 	patientHTTPHandler.SetHandler(engine, patientService)
+	userHTTPHandler.SetHandler(engine, userService)
 
 	go func() {
 		if err := engine.Start(":8080"); err != nil {

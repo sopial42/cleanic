@@ -77,7 +77,7 @@ ci-integration: build $(VENOM)
 
 venom: $(VENOM)
 	venom_var_file="./tests/venom/vars/$(env).yml"; \
-	$(VENOM) run $(test_suite) \
+	$(VENOM) run -v $(test_suite) \
 	--output-dir=./build \
 	--var-from-file "$$venom_var_file"
 

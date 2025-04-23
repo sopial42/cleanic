@@ -1,8 +1,12 @@
 package patient
 
 type Patient struct {
-	ID        int64  `json:"id"`
+	ID        ID     `json:"id"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
-	Email     string `json:"email"`
+	Email     Email  `json:"email"`
 }
+
+type ID int64
+
+type Email string

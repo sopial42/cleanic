@@ -4,6 +4,7 @@
 # Cleanic is a patient management server
 
 A simple patient management server written in Go, following Clean Architecture principles.
+Implement RBAC user manager with two roles: admin, doctor.
 
 ## An implementation of Clean Architecture
 
@@ -90,4 +91,9 @@ $ make dependencies
 - Run the server
 ```bash
 $ make run
+```
+
+- In another term, run the integration tests to init the DB with test fixtures
+```bash
+$ make integration
 ```

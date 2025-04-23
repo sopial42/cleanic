@@ -1,0 +1,122 @@
+name: Test - CRUD user
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../testData/schemas/
+        folder: ../testData/fixtures/user/admin
+        retry: 10
+  - name: Login
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/user/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "admin@gmail.com",
+            "password": "0987654"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.email ShouldEqual admin@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor admin]
+          - result.headers ShouldHaveLength 4
+          - result.headers.Authorization ShouldHaveLength 164
+          - result.headers.Authorization ShouldStartWith Bearer
+        vars:
+          id10001RoleAdminHeader:
+            from: result.headers.Authorization
+  - name: READ users
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/users"
+        headers:
+          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 2
+          - result.bodyjson.bodyjson0.id ShouldEqual 10001
+          - result.bodyjson.bodyjson0.email ShouldEqual admin@gmail.com
+          - result.bodyjson.bodyjson0.roles ShouldEqual [doctor admin]
+          - result.bodyjson.bodyjson1.id ShouldEqual 10002
+          - result.bodyjson.bodyjson1.email ShouldEqual user@gmail.com
+          - result.bodyjson.bodyjson1.roles ShouldEqual [doctor]
+      - type: http
+        method: GET
+        url: "{{.url}}/user/10002"
+        headers:
+          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10002
+          - result.bodyjson.email ShouldEqual user@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor]
+  - name: UPDATE user roles
+    steps:
+      - type: http
+        method: PATCH
+        url: "{{.url}}/user/roles"
+        headers:
+          Content-Type: application/json
+          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+        body: |
+          {
+            "id": 10002,
+            "roles": ["admin"]
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - |
+            result.bodyjson.message ShouldEqual unable to update user: unable to update roles, invalid input: admin
+      - type: http
+        method: PATCH
+        url: "{{.url}}/user/roles"
+        headers:
+          Content-Type: application/json
+          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+        body: |
+          {
+            "id": 10002,
+            "roles": ["admin", "doctor"]
+          }
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10002
+          - result.bodyjson.email ShouldEqual user@gmail.com
+          - result.bodyjson.roles ShouldEqual [admin doctor]
+  - name: DELETE a user
+    steps:
+      - type: http
+        method: DELETE
+        url: "{{.url}}/user/10002"
+        headers:
+          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+        assertions:
+          - result.statuscode ShouldEqual 204
+          - result.bodyjson ShouldHaveLength 0
+  - name: Query final result in DB
+    steps:
+      - type: sql
+        driver: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        commands:
+          - SELECT * FROM users ORDER BY id ASC;
+        assertions:
+          - result.queries.queries0.rows ShouldHaveLength 1
+          - result.queries.queries0.rows.rows0 ShouldHaveLength 4
+          - result.queries.queries0.rows.rows0.id ShouldEqual 10001
+          - result.queries.queries0.rows.rows0.password ShouldHaveLength 60
+          - result.queries.queries0.rows.rows0.email ShouldEqual admin@gmail.com
+          - result.queries.queries0.rows.rows0.roles ShouldEqual ["doctor", "admin"]
