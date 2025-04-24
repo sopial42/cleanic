@@ -99,7 +99,7 @@ testcases:
           - result.statuscode ShouldEqual 401
           - result.bodyjson ShouldHaveLength 1
           - |
-            result.bodyjson.message ShouldEqual unable to parse auth token: auth token not valid
+            result.bodyjson.message ShouldEqual unable to parse auth token: auth token not valid: token is malformed: token contains an invalid number of segments
       - type: http
         method: PATCH
         url: "{{.url}}/user"

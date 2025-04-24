@@ -19,6 +19,8 @@ jobs:
         run: make build
       - name: Lint
         run: make lint
+      - name: Unit tests
+        run: make test
   integration-tests:
     runs-on: ubuntu-latest
     services:

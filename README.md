@@ -3,12 +3,47 @@
 
 # Cleanic is a patient management server
 
-A simple patient management server written in Go, following Clean Architecture principles.
-Implement RBAC user manager with two roles: admin, doctor.
+A simple patient management server written in Go.
+- Following Clean Architecture principles.
+- Implement JWT auth & RBAC with two roles: admin, doctor.
 
-## An implementation of Clean Architecture
+Details on design choices and implementation can be found later in this README.
 
-### Clean Architecture
+## Play with it !
+
+### Run the tests
+
+- Start the dependencies
+```bash
+$ make dependencies
+```
+
+- Run the tests (Also run temporary the server)
+```bash
+$ make ci-integration
+```
+
+### Start the server
+
+- Start the dependencies
+```bash
+$ make dependencies
+```
+
+- Run the server
+```bash
+$ make run
+```
+
+- In another term, run the integration tests to init the DB with test fixtures
+```bash
+$ make integration
+```
+
+
+# An implementation of Clean Architecture
+
+## Clean Architecture
 
 Clean Architecture rely on layers, with dependencies always pointing from outer to inner layers.
 
@@ -23,7 +58,7 @@ Layers described from outer to inner:
 
 **The Dependency Rule**: Code in each layer may only depend on inside layers.
 
-### Current implementation
+## Current implementation
 
 ```
 +---------------------------------------------------------+
@@ -68,36 +103,6 @@ Layers described from outer to inner:
     - `PersistenceInterface` Describes the external dependencies required by the service (typically storage access).
 - **Domain**: Contains the core business entities
 
-## Play with it !
-
-### Run the tests
-
-- Start the dependencies
-```bash
-$ make dependencies
-```
-
-- Run the tests (Also run temporary the server)
-```bash
-$ make ci-integration
-```
-
-### Start the server
-
-- Start the dependencies
-```bash
-$ make dependencies
-```
-
-- Run the server
-```bash
-$ make run
-```
-
-- In another term, run the integration tests to init the DB with test fixtures
-```bash
-$ make integration
-```
 
 # 🔐 JWT Authentication with Refresh Tokens
 

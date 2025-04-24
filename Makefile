@@ -44,6 +44,9 @@ build:
 	@go test -c -tags=integration -buildvcs=false -coverpkg="./..." -race -o build/$(APPNAME).test ./cmd
 	@echo "🔸 Done";
 
+test:
+	go test -buildvcs=false -race ./...
+
 lint: $(GOLANGCILINT)
 	@echo "🔸 Run golangci-lint...";
 	@$(GOLANGCILINT) run --timeout 1m ./...

@@ -31,16 +31,16 @@ func (a *AuthMiddleware) RequireRoles(requiredRoles user.Roles) echo.MiddlewareF
 				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse authorization header: %w", err))
 			}
 
-			userID, userRoles, err := token.ParseClaims(a.secret)
+			claims, err := token.ParseClaims(a.secret)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse auth token: %w", err))
 			}
 
-			if err := userRoles.ValidateRequiredRoles(requiredRoles); err != nil {
+			if err := claims.UserRoles.ValidateRequiredRoles(requiredRoles); err != nil {
 				return echo.NewHTTPError(http.StatusForbidden, fmt.Errorf("unauthorized resource: %w", err))
 			}
 
-			contextUtils.SetUserIDAndRolesToContext(c, userID, userRoles)
+			contextUtils.SetUserIDAndRolesToContext(c, claims.UserID, claims.UserRoles)
 			return next(c)
 		}
 	}

@@ -11,9 +11,26 @@ import (
 )
 
 var (
-	UserIDKey = ClaimsKey("user_id")
-	RolesKey  = ClaimsKey("roles")
+	UserIDKey   = ClaimsKey("user_id")
+	RolesKey    = ClaimsKey("roles")
+	ExpireAtKey = ClaimsKey("exp")
 )
+
+type CustomClaims struct {
+	UserID    user.ID
+	UserRoles user.Roles
+	ExpDate   time.Time
+}
+
+func newClaims(id user.ID, roles user.Roles) jwt.MapClaims {
+	claims := jwt.MapClaims{
+		string(UserIDKey):   id,
+		string(RolesKey):    roles.String(),
+		string(ExpireAtKey): time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	return claims
+}
 
 type ClaimsKey string
 
@@ -41,12 +58,7 @@ func (s SignedJWT) ToAuthHeaderString() string {
 }
 
 func GenerateJWT(userID user.ID, roles user.Roles, secret []byte) (SignedJWT, error) {
-	claims := jwt.MapClaims{
-		string(UserIDKey): userID,
-		string(RolesKey):  roles.String(),
-		"exp":             time.Now().Add(24 * time.Hour).Unix(),
-	}
-
+	claims := newClaims(userID, roles)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	jwt, err := token.SignedString(secret)
 	if err != nil {
@@ -55,31 +67,56 @@ func GenerateJWT(userID user.ID, roles user.Roles, secret []byte) (SignedJWT, er
 
 	return SignedJWT{token: jwt}, nil
 }
+func (s SignedJWT) ParseClaims(secret []byte) (CustomClaims, error) {
+	var claims CustomClaims
 
-func (s SignedJWT) ParseClaims(secret []byte) (user.ID, user.Roles, error) {
 	token, err := jwt.Parse(string(s.token), func(t *jwt.Token) (interface{}, error) {
 		return secret, nil
 	})
-
-	if token == nil {
-		return 0, user.Roles{}, errors.New("auth token not valid")
+	if err != nil || token == nil {
+		return claims, fmt.Errorf("auth token not valid: %w", err)
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		idFloat, ok := claims[string(UserIDKey)].(float64)
-		if !ok {
-			return 0, user.Roles{}, fmt.Errorf("user id is not a valid format")
-		}
-
-		id := user.ID(idFloat)
-		rolesStr, ok := claims[string(RolesKey)].(string)
-		if !ok {
-			return 0, user.Roles{}, fmt.Errorf("roles are not a valid format")
-		}
-
-		currentRoles, err := user.NewRolesFromRolesString(rolesStr)
-		return id, currentRoles, err
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return claims, errors.New("invalid token claims")
 	}
 
-	return 0, user.Roles{}, fmt.Errorf("unable to parse token: %w", err)
+	// Parse and validate expiration date
+	rawExp, exists := mapClaims[string(ExpireAtKey)]
+	if !exists {
+		return claims, errors.New("expiration date (exp) is missing")
+	}
+
+	expFloat, ok := rawExp.(float64)
+	if !ok {
+		return claims, errors.New("expiration date is not a float64")
+	}
+
+	expTime := time.Unix(int64(expFloat), 0)
+	if time.Now().After(expTime) {
+		return claims, errors.New("token is expired")
+	}
+
+	claims.ExpDate = expTime
+	// Parse User ID
+	idFloat, ok := mapClaims[string(UserIDKey)].(float64)
+	if !ok {
+		return claims, errors.New("user ID is not a valid float64")
+	}
+
+	claims.UserID = user.ID(idFloat)
+	// Parse Roles
+	rolesStr, ok := mapClaims[string(RolesKey)].(string)
+	if !ok {
+		return claims, errors.New("roles are not a valid string")
+	}
+
+	currentRoles, err := user.NewRolesFromRolesString(rolesStr)
+	if err != nil {
+		return claims, fmt.Errorf("unable to parse roles: %w", err)
+	}
+
+	claims.UserRoles = currentRoles
+	return claims, nil
 }
