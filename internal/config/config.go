@@ -8,8 +8,17 @@ import (
 )
 
 type Config struct {
-	DBConfig DBConfig
-	Port     string
+	JWT  JWTConfig
+	DB   DBConfig
+	Port string
+}
+
+type JWTConfig struct {
+	secret []byte
+}
+
+func (j JWTConfig) GetSecret() []byte {
+	return j.secret
 }
 
 type DBConfig struct {
@@ -23,8 +32,12 @@ type DBConfig struct {
 func Load() *Config {
 	_ = godotenv.Load()
 
+	jwtSecret := mustGet("JWT_SECRET")
 	return &Config{
-		DBConfig: DBConfig{
+		JWT: JWTConfig{
+			secret: []byte(jwtSecret),
+		},
+		DB: DBConfig{
 			Host:     mustGet("DB_HOST"),
 			Port:     mustGet("DB_PORT"),
 			User:     mustGet("DB_USER"),

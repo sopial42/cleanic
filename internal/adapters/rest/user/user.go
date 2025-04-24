@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/sopial42/cleanic/internal/adapters/rest/middleware"
+	contextUtils "github.com/sopial42/cleanic/internal/adapters/rest/utils/context"
 	user "github.com/sopial42/cleanic/internal/domains/user"
 	userSVC "github.com/sopial42/cleanic/internal/services/user"
 )
@@ -17,24 +17,19 @@ type userHandler struct {
 	uService userSVC.Service
 }
 
-func SetHandler(e *echo.Echo, service userSVC.Service) {
+func SetHandler(e *echo.Echo, service userSVC.Service, authMiddleware middleware.AuthMiddleware) {
 	u := &userHandler{
 		service,
 	}
+	requireAdmin := authMiddleware.RequireRoles(user.Roles{user.RoleAdmin})
+	requireDoctor := authMiddleware.RequireRoles(user.Roles{user.RoleDoctor})
 	apiV1 := e.Group("/api/v1")
 	{
-		apiV1.POST("/user", u.register)
-		apiV1.POST("/user/login", u.login)
-		apiV1.GET("/users", u.getUsers, middleware.RequireRoles(
-			user.Roles{user.RoleAdmin}))
-		apiV1.GET("/user/:id", u.getUserByID, middleware.RequireRoles(
-			user.Roles{user.RoleAdmin}))
-		apiV1.PATCH("/user", u.updateUser, middleware.RequireRoles(
-			user.Roles{user.RoleDoctor}))
-		apiV1.PATCH("/user/roles", u.updateUserRoles, middleware.RequireRoles(
-			user.Roles{user.RoleAdmin}))
-		apiV1.DELETE("/user/:id", u.deleteUser, middleware.RequireRoles(
-			user.Roles{user.RoleDoctor}))
+		apiV1.GET("/users", u.getUsers, requireAdmin)
+		apiV1.GET("/user/:id", u.getUserByID, requireAdmin)
+		apiV1.PATCH("/user", u.updateUser, requireDoctor)
+		apiV1.PATCH("/user/roles", u.updateUserRoles, requireAdmin)
+		apiV1.DELETE("/user/:id", u.deleteUser, requireDoctor)
 	}
 }
 
@@ -45,47 +40,6 @@ type UserUpdateInput struct {
 	ID       user.ID    `json:"id"`
 	Email    user.Email `json:"email"`
 	Password string     `json:"password"`
-}
-
-func (u *userHandler) register(context echo.Context) error {
-	ctx := context.Request().Context()
-	newUserInput := new(UserUpdateInput)
-	if err := context.Bind(newUserInput); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
-	}
-
-	newUser := user.User{
-		Email:    newUserInput.Email,
-		Password: newUserInput.Password,
-	}
-
-	userCreated, err := u.uService.Register(ctx, newUser)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
-	}
-
-	return context.JSON(http.StatusCreated, userCreated)
-}
-
-func (u *userHandler) login(context echo.Context) error {
-	ctx := context.Request().Context()
-	newUserInput := new(UserUpdateInput)
-	if err := context.Bind(newUserInput); err != nil {
-		return context.JSON(http.StatusBadRequest, err)
-	}
-
-	newUser := user.User{
-		Email:    newUserInput.Email,
-		Password: newUserInput.Password,
-	}
-
-	userFound, jwt, err := u.uService.Login(ctx, newUser)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
-	}
-
-	context.Response().Header().Set("Authorization", jwt.ToAuthHeaderString())
-	return context.JSON(http.StatusOK, userFound)
 }
 
 func (u *userHandler) getUsers(context echo.Context) error {
@@ -116,10 +70,9 @@ func (u *userHandler) getUserByID(context echo.Context) error {
 
 func (u *userHandler) updateUser(context echo.Context) error {
 	ctx := context.Request().Context()
-	ctxUserIDValue := context.Get(string(userSVC.UserIDKey))
-	reqUserID, ok := ctxUserIDValue.(user.ID)
-	if !ok {
-		return echo.NewHTTPError(http.StatusInternalServerError, errors.New("unable to authenticate user"))
+	reqUserID, err := contextUtils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("unable to authenticate user: %w", err))
 	}
 
 	newUserInput := new(UserUpdateInput)
@@ -150,10 +103,9 @@ type UserRolesUpdateInput struct {
 // updateUserRoles only handle roles for safety
 func (u *userHandler) updateUserRoles(context echo.Context) error {
 	ctx := context.Request().Context()
-	ctxUserIDValue := context.Get(string(userSVC.UserIDKey))
-	reqUserID, ok := ctxUserIDValue.(user.ID)
-	if !ok {
-		return echo.NewHTTPError(http.StatusInternalServerError, errors.New("unable to authenticate user"))
+	reqUserID, err := contextUtils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("unable to authenticate user: %w", err))
 	}
 
 	newUserInput := new(UserRolesUpdateInput)
@@ -176,16 +128,15 @@ func (u *userHandler) updateUserRoles(context echo.Context) error {
 
 func (u *userHandler) deleteUser(context echo.Context) error {
 	ctx := context.Request().Context()
+	reqUserID, err := contextUtils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("unable to authenticate user: %w", err))
+	}
+
 	idParam := context.Param("id")
 	idToDelete, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
-	}
-
-	ctxUserIDValue := context.Get(string(userSVC.UserIDKey))
-	reqUserID, ok := ctxUserIDValue.(user.ID)
-	if !ok {
-		return echo.NewHTTPError(http.StatusInternalServerError, errors.New("unable to authenticate user"))
 	}
 
 	err = u.uService.DeleteUser(ctx, reqUserID, user.ID(idToDelete))

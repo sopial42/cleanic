@@ -19,7 +19,7 @@ func NewUserService(persistence Persistence) Service {
 	}
 }
 
-func (u *userSVC) Register(ctx context.Context, newUser user.User) (user.User, error) {
+func (u *userSVC) Create(ctx context.Context, newUser user.User) (user.User, error) {
 	// Assign default role
 	newUser.Roles = []user.Role{user.MinimalMandatoryRole}
 
@@ -40,30 +40,6 @@ func (u *userSVC) Register(ctx context.Context, newUser user.User) (user.User, e
 	return userCreated, nil
 }
 
-func (u *userSVC) Login(ctx context.Context, loginUser user.User) (user.User, SignedJWT, error) {
-	// Check email is correct
-	if !loginUser.Email.IsValid() {
-		return user.User{}, SignedJWT{}, fmt.Errorf("invalid email input: %v", loginUser.Email)
-	}
-	// Get user by email
-	userFound, err := u.persistence.GetUserByEmail(ctx, loginUser.Email)
-	if err != nil {
-		return user.User{}, SignedJWT{}, err
-	}
-
-	// Check password
-	if err := bcrypt.CompareHashAndPassword([]byte(userFound.Password), []byte(loginUser.Password)); err != nil {
-		return user.User{}, SignedJWT{}, fmt.Errorf("invalid password: %w", err)
-	}
-
-	jwt, err := generateJWT(userFound.ID, userFound.Roles)
-	if err != nil {
-		return user.User{}, SignedJWT{}, fmt.Errorf("unable to generate token: %w", err)
-	}
-
-	return userFound, jwt, nil
-}
-
 func (u *userSVC) GetUsers(ctx context.Context) ([]user.User, error) {
 	users, err := u.persistence.ListUsers(ctx)
 	if err != nil {
@@ -75,6 +51,15 @@ func (u *userSVC) GetUsers(ctx context.Context) ([]user.User, error) {
 
 func (u *userSVC) GetUserByID(ctx context.Context, id user.ID) (user.User, error) {
 	userFound, err := u.persistence.GetUserByID(ctx, id)
+	if err != nil {
+		return user.User{}, err
+	}
+
+	return userFound, nil
+}
+
+func (u *userSVC) GetUserByEmail(ctx context.Context, email user.Email) (user.User, error) {
+	userFound, err := u.persistence.GetUserByEmail(ctx, email)
 	if err != nil {
 		return user.User{}, err
 	}

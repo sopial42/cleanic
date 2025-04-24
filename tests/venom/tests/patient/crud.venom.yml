@@ -7,9 +7,26 @@ testcases:
       - type: dbfixtures
         database: postgres
         dsn: "{{ .pgsql_dsn }}"
-        migrations: ../testData/schemas/
-        folder: ../testData/fixtures/patient
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/patient
         retry: 10
+  - name: Login
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "123456"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 200
+        vars:
+          id10001RoleDoctorHeader:
+            from: result.headers.Authorization
   - name: CREATE two new patient
     steps:
       - type: http
@@ -17,6 +34,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
+          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Axel",
@@ -35,6 +53,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
+          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Camille",
@@ -54,6 +73,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
+          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Axel",
@@ -68,6 +88,8 @@ testcases:
       - type: http
         method: GET
         url: "{{.url}}/patients"
+        headers: &authHeader
+          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 2
@@ -88,6 +110,7 @@ testcases:
       - type: http
         method: GET
         url: "{{.url}}/patient/10001"
+        headers: *authHeader
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 4
@@ -101,6 +124,7 @@ testcases:
         method: PATCH
         url: "{{.url}}/patient"
         headers:
+          <<: *authHeader
           Content-Type: application/json
         body: |
           {
@@ -117,6 +141,7 @@ testcases:
           - result.bodyjson.email ShouldEqual aa@gmail.com
       - type: http
         method: GET
+        headers: *authHeader
         url: "{{.url}}/patient/10001"
         assertions: *AxelAir
   - name: DELETE a patient
@@ -125,6 +150,7 @@ testcases:
         method: DELETE
         url: "{{.url}}/patient/10001"
         headers:
+          <<: *authHeader
           Content-Type: application/json
         assertions:
           - result.statuscode ShouldEqual 204
@@ -132,6 +158,7 @@ testcases:
       - type: http
         method: GET
         url: "{{.url}}/patients"
+        headers: *authHeader
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 1

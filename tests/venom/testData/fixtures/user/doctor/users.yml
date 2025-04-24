@@ -1,1 +1,11 @@
-[]
+- id: 10001
+  email: ad@gmail.com
+  password: $2a$10$WlMQDJVUiy8yhdAjwVWIw.IqM5VyPOgsyKsUY39Gb0aNMEbnHRgke # 123456
+  roles: |
+    ["doctor"]
+- id: 10002
+  email: cd@gmail.com
+  password: $2a$10$94.GwXooTCTLhiVlcW38iedEhnRyVGc5q6aqNFHPcJ9623zGZ00SW # 0987654
+  roles: |
+    ["doctor"]
+

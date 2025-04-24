@@ -11,6 +11,8 @@ const (
 	RoleAdmin            Role = "admin"
 	RoleDoctor           Role = "doctor"
 	MinimalMandatoryRole      = RoleDoctor
+	// isAdminStandaloneRole at will always validate required roles if admin role is detected
+	isAdminStandaloneRole = true
 )
 
 type User struct {
@@ -61,6 +63,12 @@ func NewRolesFromRolesString(rolesString string) (r Roles, err error) {
 
 func (currentRoles Roles) ValidateRequiredRoles(requiredRoles Roles) error {
 	var missing Roles
+
+	// isAdminStandaloneRole true will force validation if admin role is present
+	// no matter if other roles are missing
+	if isAdminStandaloneRole && currentRoles.Has(RoleAdmin) {
+		return nil
+	}
 
 	for _, reqRole := range requiredRoles {
 		if !currentRoles.Has(reqRole) {

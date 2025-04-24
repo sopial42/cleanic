@@ -1,0 +1,99 @@
+name: Test - CRUD user
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/auth
+        retry: 10
+  - name: Register two new users
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "123456"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 201
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.email ShouldEqual ad@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor]
+      - type: http
+        method: POST
+        url: "{{.url}}/auth"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "cd@gmail.com",
+            "password": "0987654"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 201
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10002
+          - result.bodyjson.email ShouldEqual cd@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor]
+      - type: http
+        method: POST
+        url: "{{.url}}/auth"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "cd@gmail.com",
+            "password": "0987654"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
+  - name: Login
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "WRONGPWD"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
+          - result.headers ShouldHaveLength 3
+          - result.headers.Authorization ShouldBeEmpty
+          - result.bodyjson ShouldHaveLength 1
+          - |
+            result.bodyjson.message ShouldEqual invalid password: crypto/bcrypt: hashedPassword is not the hash of the given password
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "123456"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.email ShouldEqual ad@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor]
+          - result.headers ShouldHaveLength 4
+          - result.headers.Authorization ShouldHaveLength 156
+          - result.headers.Authorization ShouldStartWith Bearer
+        vars:
+          id10001RoleDoctorHeader:
+            from: result.headers.Authorization

@@ -1,19 +1,16 @@
-package user
+package jwt
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	user "github.com/sopial42/cleanic/internal/domains/user"
+	"github.com/sopial42/cleanic/internal/domains/user"
 )
 
 var (
-	jwtSecret = []byte("your_secret_key")
 	UserIDKey = ClaimsKey("user_id")
 	RolesKey  = ClaimsKey("roles")
 )
@@ -43,9 +40,25 @@ func (s SignedJWT) ToAuthHeaderString() string {
 	return fmt.Sprintf("Bearer %s", string(s.token))
 }
 
-func (s SignedJWT) ParseClaims() (user.ID, user.Roles, error) {
+func GenerateJWT(userID user.ID, roles user.Roles, secret []byte) (SignedJWT, error) {
+	claims := jwt.MapClaims{
+		string(UserIDKey): userID,
+		string(RolesKey):  roles.String(),
+		"exp":             time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwt, err := token.SignedString(secret)
+	if err != nil {
+		return SignedJWT{}, fmt.Errorf("unable to sign token: %w", err)
+	}
+
+	return SignedJWT{token: jwt}, nil
+}
+
+func (s SignedJWT) ParseClaims(secret []byte) (user.ID, user.Roles, error) {
 	token, err := jwt.Parse(string(s.token), func(t *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return secret, nil
 	})
 
 	if token == nil {
@@ -69,39 +82,4 @@ func (s SignedJWT) ParseClaims() (user.ID, user.Roles, error) {
 	}
 
 	return 0, user.Roles{}, fmt.Errorf("unable to parse token: %w", err)
-}
-
-func generateJWT(userID user.ID, roles user.Roles) (SignedJWT, error) {
-	claims := jwt.MapClaims{
-		string(UserIDKey): userID,
-		string(RolesKey):  roles.String(),
-		"exp":             time.Now().Add(24 * time.Hour).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	jwt, err := token.SignedString(jwtSecret)
-	if err != nil {
-		return SignedJWT{}, fmt.Errorf("unable to sign token: %w", err)
-	}
-
-	return SignedJWT{token: jwt}, nil
-}
-
-func GetUserIDFromContext(ctx context.Context) (int64, error) {
-	raw := ctx.Value(UserIDKey)
-	if raw == nil {
-		return 0, fmt.Errorf("user id not found in context")
-	}
-
-	str, ok := raw.(string)
-	if !ok {
-		return 0, fmt.Errorf("user id is not a valid format (not string)")
-	}
-
-	id, err := strconv.ParseInt(str, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("user id is not a valid format (not int)")
-	}
-
-	return id, nil
 }

@@ -1,7 +1,7 @@
 APPNAME := cleanic
 GO_PATH := $(shell go env GOPATH)
 COVERDIR := ./build/coverdata
-test_suite_dir := ./tests/venom
+test_suite_dir := ./tests/venom/tests
 integration_test_suite := "**/*.venom.yml"
 
 REFLEX := $(GO_PATH)/bin/reflex

@@ -7,14 +7,14 @@ testcases:
       - type: dbfixtures
         database: postgres
         dsn: "{{ .pgsql_dsn }}"
-        migrations: ../testData/schemas/
-        folder: ../testData/fixtures/user/admin
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/user/admin
         retry: 10
   - name: Login
     steps:
       - type: http
         method: POST
-        url: "{{.url}}/user/login"
+        url: "{{.url}}/auth/login"
         headers:
           Content-Type: application/json
         body: |
@@ -24,13 +24,6 @@ testcases:
           }
         assertions:
           - result.statuscode ShouldEqual 200
-          - result.bodyjson ShouldHaveLength 3
-          - result.bodyjson.id ShouldEqual 10001
-          - result.bodyjson.email ShouldEqual admin@gmail.com
-          - result.bodyjson.roles ShouldEqual [doctor admin]
-          - result.headers ShouldHaveLength 4
-          - result.headers.Authorization ShouldHaveLength 164
-          - result.headers.Authorization ShouldStartWith Bearer
         vars:
           id10001RoleAdminHeader:
             from: result.headers.Authorization

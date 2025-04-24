@@ -16,7 +16,7 @@ Layers described from outer to inner:
 - **Drivers**: External systems that depends and interact with the **Interface Adapters** layer.
 - **Interfaces adapters**: Contains two responsibilities:
     - Input: Adapt incoming data from **Drivers** (e.g., HTTP requests) into a format expected by the **Usecase** layer.
-    - Output: Implement interfaces enabling communication with external systems, as required and defined by the **Usecase** layer.
+    - Output: Implement interfaces enabling communication with external systems or services, as required and defined by the **Usecase** layer.
 - **Usecase**: Contains the core business logic, define and use interfaces for external interactions (which are implemented in the Adapters layer) and manipulating **Entities**.
 - **Entities**: Contains business objects. They are independent of application logic and external dependencies.
 
@@ -38,6 +38,7 @@ Layers described from outer to inner:
 |---------------------------------------------------------|
 | - rest/         --> Handles HTTP requests               |
 | - persistence/  --> Implements PersistenceInterface     |
+| - client/      --> Implements my other services clients |
 +----------------------------▲----------------------------+
                              |
 +----------------------------|----------------------------+
@@ -158,4 +159,3 @@ But it has only a short-term duration. In case of a leak, attack surface is sign
 - Secure long-term authentication with `Refresh Tokens`
 - Minimized exposure via short-lived `Access Tokens`
 - Seamless UX with automatic token refresh
-- Scalable and stateless service authentication
