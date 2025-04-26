@@ -164,3 +164,31 @@ But it has only a short-term duration. In case of a leak, attack surface is sign
 - Secure long-term authentication with `Refresh Tokens`
 - Minimized exposure via short-lived `Access Tokens`
 - Seamless UX with automatic token refresh
+
+### Refresh
+
+- Login service retourne AccessToken + RefreshToken
+- Stocker RefreshToken en DB    
+
+### Aud feature
+- service name + middleware check its own service name 
+- gérer audience en dur pour l'instant avec aud AUTH + aud ["user", "patient"]
+
+## Refresh token claims
+
+- sub: identifiant user
+- exp: expiration date
+- iat: date de création
+- aud: audience (facultatif, auth API)
+- token_id: à stocker en DB pour revocation si besoin
+
+
+## Access token 
+
+- sub: identifiant user
+- exp: expiration date
+- iat: date de création
+- aud: audience (auth API)
+- roles: 
+
+# TODO: test avec des durées de token de quelques secondes

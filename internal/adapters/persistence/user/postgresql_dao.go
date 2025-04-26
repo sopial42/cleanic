@@ -18,7 +18,7 @@ func userFromDomainToDAO(user user.User) userDAO {
 	userDAO := userDAO{
 		ID:       int64(user.ID),
 		Email:    string(user.Email),
-		Password: user.Password,
+		Password: string(user.Password),
 	}
 
 	roles := make([]string, len(user.Roles))
@@ -34,7 +34,7 @@ func userFromDAOToDomain(userDAO userDAO) user.User {
 	domainUser := user.User{
 		ID:       user.ID(userDAO.ID),
 		Email:    user.Email(userDAO.Email),
-		Password: userDAO.Password,
+		Password: user.Password(userDAO.Password),
 	}
 
 	// Convert roles from string slice to domain roles

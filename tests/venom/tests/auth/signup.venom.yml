@@ -1,0 +1,91 @@
+name: Test - CRUD user
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/auth/signup
+        retry: 10
+  - name: Register a new user KO email
+    steps:
+    - type: http
+      method: POST
+      url: "{{.url}}/auth/signup"
+      headers:
+        Content-Type: application/json
+      body: |
+        {
+          "email": "pasdarobase.com",
+          "password": "12345678"
+        }
+      assertions:
+        - result.statuscode ShouldEqual 500
+        - result.bodyjson ShouldHaveLength 1
+        - result.bodyjson.message ShouldEqual invalid email
+    - type: http
+      method: POST
+      url: "{{.url}}/auth/signup"
+      headers:
+        Content-Type: application/json
+      body: |
+        {
+          "password": "12345678"
+        }
+      assertions:
+        - result.statuscode ShouldEqual 500
+        - result.bodyjson ShouldHaveLength 1
+        - result.bodyjson.message ShouldEqual invalid email
+  - name: Register a new user KO password
+    steps:
+    - type: http
+      method: POST
+      url: "{{.url}}/auth/signup"
+      headers:
+        Content-Type: application/json
+      body: |
+        {
+          "email": "ad@gmail.com"
+        }
+      assertions:
+        - result.statuscode ShouldEqual 500
+        - result.bodyjson ShouldHaveLength 1
+        - result.bodyjson.message ShouldEqual invalid password
+  - name: Register a new user OK
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/signup"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "12345678"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 201
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.id ShouldEqual 10001
+          - result.bodyjson.email ShouldEqual ad@gmail.com
+          - result.bodyjson.roles ShouldEqual [doctor]
+  - name: Register a new user already exists
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/signup"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "ad@gmail.com",
+            "password": "12345678"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - |
+            result.bodyjson.message ShouldContainSubstring (SQLSTATE=23505)

@@ -1,0 +1,47 @@
+name: Test - CRUD user
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/auth/login
+        retry: 10
+  - name: Refresh
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "user@gmail.com",
+            "password": "12345678"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 4
+          - result.bodyjson.refresh_token ShouldNotBeIn 215 225
+          - result.bodyjson.access_token ShouldNotBeIn 240 250
+          - result.bodyjson.token_type ShouldEqual Bearer
+          - result.bodyjson.expires_in ShouldEqual 300
+        vars:
+          refreshToken:
+            from: result.bodyjson.refresh_token
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/refresh"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "refresh_token": "{{.refreshToken}}"
+          }
+        assertions:
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - result.bodyjson.message ShouldContainSubstring invalid password

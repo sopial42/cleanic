@@ -29,6 +29,12 @@ func GetUserIDFromContext(ctx context.Context) (user.ID, error) {
 	return id, nil
 }
 
+func SetUserIDToContext(ctxEcho echo.Context, userID user.ID) {
+	ctx := ctxEcho.Request().Context()
+	ctx = context.WithValue(ctx, UserIDKey, userID)
+	ctxEcho.SetRequest(ctxEcho.Request().WithContext(ctx))
+}
+
 func SetUserIDAndRolesToContext(ctxEcho echo.Context, userID user.ID, userRoles user.Roles) {
 	ctx := ctxEcho.Request().Context()
 	ctx = context.WithValue(ctx, UserIDKey, userID)
