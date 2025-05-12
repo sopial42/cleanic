@@ -38,7 +38,7 @@ func (p *pgPersistence) Insert(ctx context.Context, newUser user.User) (user.Use
 }
 
 func (p *pgPersistence) ListUsers(ctx context.Context) ([]user.User, error) {
-	var userDAOs []userDAO
+	var userDAOs []UserDAO
 
 	request := p.clientDB.NewSelect().Model(&userDAOs)
 	err := request.Scan(ctx)
@@ -50,7 +50,7 @@ func (p *pgPersistence) ListUsers(ctx context.Context) ([]user.User, error) {
 }
 
 func (p *pgPersistence) GetUserByID(ctx context.Context, id user.ID) (user.User, error) {
-	var userDAO userDAO
+	var userDAO UserDAO
 
 	err := p.clientDB.NewSelect().
 		Model(&userDAO).
@@ -68,7 +68,7 @@ func (p *pgPersistence) GetUserByID(ctx context.Context, id user.ID) (user.User,
 }
 
 func (p *pgPersistence) GetUserByEmail(ctx context.Context, email user.Email) (user.User, error) {
-	var userDAO userDAO
+	var userDAO UserDAO
 
 	err := p.clientDB.NewSelect().
 		Model(&userDAO).
@@ -124,7 +124,7 @@ func (p *pgPersistence) UpdateUserRoles(ctx context.Context, updatedUser user.Us
 
 func (p *pgPersistence) DeleteUser(ctx context.Context, userIDToDelete user.ID) error {
 	_, err := p.clientDB.NewDelete().
-		Model((*userDAO)(nil)).
+		Model((*UserDAO)(nil)).
 		Where("id = ?", userIDToDelete).
 		Exec(ctx)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/gommon/log"
 	"github.com/sopial42/cleanic/internal/domains/user"
 )
 
@@ -44,7 +45,7 @@ func NewRefreshToken(userID user.ID, secret RefreshTokenSecret, tokenTTLDays Ref
 func generateRefreshTokenClaims(userID user.ID, audience RefreshTokenAudience, tokenTTLDays RefreshTokenTTLDays) RefreshTokenClaims {
 	return RefreshTokenClaims{
 		Subject:   userID,
-		ExpiresAt: time.Now().Add(time.Duration(tokenTTLDays) * time.Hour),
+		ExpiresAt: time.Now().Add(time.Duration(tokenTTLDays) * 24 * time.Hour),
 		IssuedAt:  time.Now(),
 	}
 }
@@ -63,25 +64,25 @@ func generateRefreshToken(claims RefreshTokenClaims, secret RefreshTokenSecret) 
 	}
 
 	return SignedRefreshToken(signedToken), nil
-
 }
 
 func ParseRefreshClaims(tokenToParse string, secret RefreshTokenSecret) (RefreshTokenClaims, error) {
+	log.Infof("parsing refresh token %v", tokenToParse)
 	token, err := jwt.Parse(tokenToParse, func(t *jwt.Token) (interface{}, error) {
-		return secret, nil
+		return []byte(secret), nil
 	})
 
 	if err != nil || token == nil {
-		return RefreshTokenClaims{}, fmt.Errorf("auth token not valid: %w", err)
+		return RefreshTokenClaims{}, fmt.Errorf("refresh token not valid: %w", err)
 	}
 
 	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return RefreshTokenClaims{}, errors.New("invalid token claims")
+		return RefreshTokenClaims{}, errors.New("invalid refresh token claims")
 	}
 
 	// Subject
-	idFloat, ok := mapClaims[string(AudienceKey)].(float64)
+	idFloat, ok := mapClaims[string(SubjectKey)].(float64)
 	if !ok {
 		return RefreshTokenClaims{}, errors.New("user ID is not a valid float64")
 	}

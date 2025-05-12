@@ -68,31 +68,11 @@ func (a *authSVC) Login(ctx context.Context, loginUser user.User) (LoginResponse
 		return LoginResponse{}, fmt.Errorf("invalid password: %w", err)
 	}
 
-	refreshToken, err := utils.NewRefreshToken(
-		userFound.ID, a.jwtConfig.RefreshTokenConfig.GetSecret(),
-		utils.RefreshTokenTTLDays(a.jwtConfig.AccessTokenConfig.TokenExpirationMinutes),
-		utils.RefreshTokenAudience(
-			a.jwtConfig.RefreshTokenConfig.Audience))
-	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unable to generate refresh token: %w", err)
-	}
-
-	accessToken, err := utils.NewAccessToken(
-		userFound.ID, userFound.Roles, a.jwtConfig.AccessTokenConfig.GetSecret(),
-		utils.AccessTokenTTLMin(a.jwtConfig.AccessTokenConfig.TokenExpirationMinutes),
-		utils.AccessTokenAudience(
-			a.jwtConfig.AccessTokenConfig.Audience,
-		),
-	)
-
 	if err != nil {
 		return LoginResponse{}, fmt.Errorf("unable to generate access token: %w", err)
 	}
 
-	_, err = a.persistence.RegisterRefreshToken(ctx, refreshToken)
-	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unable to register refresh token: %w", err)
-	}
+	refreshToken, accessToken, err := generateTokens(userFound, a.jwtConfig)
 	return LoginResponse{
 		AccessTokenResponse: AccessTokenResponse{
 			Token:            accessToken.Token,
@@ -102,5 +82,45 @@ func (a *authSVC) Login(ctx context.Context, loginUser user.User) (LoginResponse
 		RefreshTokenResponse: RefreshTokenResponse{
 			Token: refreshToken.Token,
 		},
-	}, nil
+	}, err
+}
+
+func (a *authSVC) Refresh(ctx context.Context, userID user.ID) (LoginResponse, error) {
+	userFound, err := a.uClient.GetUserByID(ctx, userID)
+	if err != nil {
+		return LoginResponse{}, err
+	}
+
+	refreshToken, accessToken, err := generateTokens(userFound, a.jwtConfig)
+	return LoginResponse{
+		AccessTokenResponse: AccessTokenResponse{
+			Token:            accessToken.Token,
+			Type:             accessToken.Type,
+			ExpiresInSeconds: int64(accessToken.ExpirationDuration.Seconds()),
+		},
+		RefreshTokenResponse: RefreshTokenResponse{
+			Token: refreshToken.Token,
+		},
+	}, err
+}
+
+func generateTokens(user user.User, config config.JWTConfig) (utils.RefreshToken, utils.AccessToken, error) {
+	refreshToken, err := utils.NewRefreshToken(
+		user.ID, config.RefreshTokenConfig.GetSecret(),
+		utils.RefreshTokenTTLDays(config.AccessTokenConfig.TokenExpirationMinutes),
+		utils.RefreshTokenAudience(
+			config.RefreshTokenConfig.Audience))
+	if err != nil {
+		return utils.RefreshToken{}, utils.AccessToken{}, fmt.Errorf("unable to generate refresh token: %w", err)
+	}
+
+	accessToken, err := utils.NewAccessToken(
+		user.ID, user.Roles, config.AccessTokenConfig.GetSecret(),
+		utils.AccessTokenTTLMin(config.AccessTokenConfig.TokenExpirationMinutes),
+		utils.AccessTokenAudience(
+			config.AccessTokenConfig.Audience,
+		),
+	)
+
+	return refreshToken, accessToken, err
 }

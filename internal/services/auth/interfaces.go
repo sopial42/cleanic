@@ -10,6 +10,7 @@ import (
 type Service interface {
 	Signup(ctx context.Context, newUser user.User) (user.User, error)
 	Login(ctx context.Context, loginUser user.User) (LoginResponse, error)
+	Refresh(ctx context.Context, reqUserID user.ID) (LoginResponse, error)
 }
 
 type Persistence interface {
@@ -19,4 +20,5 @@ type Persistence interface {
 type UserClient interface {
 	Create(ctx context.Context, newUser user.User) (user.User, error)
 	GetUserByEmail(ctx context.Context, email user.Email) (user.User, error)
+	GetUserByID(ctx context.Context, userID user.ID) (user.User, error)
 }

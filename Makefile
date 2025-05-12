@@ -2,7 +2,7 @@ APPNAME := cleanic
 GO_PATH := $(shell go env GOPATH)
 COVERDIR := ./build/coverdata
 test_suite_dir := ./tests/venom/tests
-integration_test_suite := "**/*.venom.yml"
+integration_test_suite := "**/refresh.venom.yml"
 
 REFLEX := $(GO_PATH)/bin/reflex
 $(REFLEX):
@@ -52,12 +52,18 @@ lint: $(GOLANGCILINT)
 	@$(GOLANGCILINT) run --timeout 1m ./...
 	@echo "🔸 Done";
 
+dependencies:
+	docker compose up --remove-orphans -d
+
+env=integration
+dev:
+	@echo "🔸 Init and/or reset DB...";
+	@$(MAKE) env=$(env) test_suite="$(test_suite_dir)/../dev/dev.venom.yml" venom;
+	@echo "🔸 Done";
+
 run: $(REFLEX)
 	$(REFLEX) -r '\.go$$' --start-service -- \
   	go run -race cmd/main.go ${args}
-
-dependencies:
-	docker compose up --remove-orphans -d
 
 integration: env=integration
 integration:
