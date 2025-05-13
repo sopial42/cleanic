@@ -13,9 +13,10 @@ import (
 const AccessTokenType = "Bearer"
 
 type AccessToken struct {
-	Token              SignedAccessToken
-	ExpirationDuration time.Duration
-	Type               string
+	SignedToken           SignedAccessToken
+	ExpirationDurationMin time.Duration
+	Type                  string
+	Claims                AccessTokenClaims
 }
 
 type SignedAccessToken string
@@ -26,11 +27,10 @@ type AccessTokenTTLMin int
 
 type AccessTokenAudience string
 
-type accessTokenClaims struct {
+type AccessTokenClaims struct {
 	Subject   user.ID
-	ExpiresAt time.Time
-	IssuedAt  time.Time
-	Audience  string
+	ExpiresAt int64
+	IssuedAt  int64
 	Roles     user.Roles
 }
 
@@ -42,28 +42,27 @@ func NewAccessToken(userID user.ID, roles user.Roles, secret AccessTokenSecret, 
 	}
 
 	return AccessToken{
-		Token:              token,
-		ExpirationDuration: time.Duration(tokenTTLMin) * time.Minute,
-		Type:               AccessTokenType,
+		SignedToken:                 token,
+		ExpirationDurationMin: time.Duration(tokenTTLMin) * time.Minute,
+		Type:                  AccessTokenType,
+		Claims:                claims,
 	}, nil
 }
 
-func generateAccessTokenClaims(userID user.ID, roles user.Roles, audience AccessTokenAudience, expirationMinutes AccessTokenTTLMin) accessTokenClaims {
-	return accessTokenClaims{
+func generateAccessTokenClaims(userID user.ID, roles user.Roles, audience AccessTokenAudience, expirationMinutes AccessTokenTTLMin) AccessTokenClaims {
+	return AccessTokenClaims{
 		Subject:   userID,
-		ExpiresAt: time.Now().Add(time.Duration(expirationMinutes) * time.Minute),
-		IssuedAt:  time.Now(),
-		Audience:  string(audience),
+		ExpiresAt: time.Now().Add(time.Duration(expirationMinutes) * time.Minute).Unix(),
+		IssuedAt:  time.Now().Unix(),
 		Roles:     roles,
 	}
 }
 
-func generateSignedAccessToken(claims accessTokenClaims, secret []byte) (SignedAccessToken, error) {
+func generateSignedAccessToken(claims AccessTokenClaims, secret []byte) (SignedAccessToken, error) {
 	jwtClaims := jwt.MapClaims{
 		string(SubjectKey):  claims.Subject,
 		string(ExpireAtKey): claims.ExpiresAt,
 		string(IssuedAtKey): claims.IssuedAt,
-		string(AudienceKey): claims.Audience,
 		string(RolesKey):    claims.Roles,
 	}
 
@@ -90,38 +89,38 @@ func ParseBearerHeader(fullHeaderValue string) (string, error) {
 }
 
 func BearerHeaderStringFromAccessToken(token AccessToken) string {
-	return fmt.Sprintf("Bearer %s", string(token.Token))
+	return fmt.Sprintf("Bearer %s", string(token.SignedToken))
 }
 
-func ParseAccessClaims(tokenToParse string, secret []byte) (accessTokenClaims, error) {
+func ParseAccessClaims(tokenToParse string, secret []byte) (AccessTokenClaims, error) {
 	token, err := jwt.Parse(tokenToParse, func(t *jwt.Token) (interface{}, error) {
 		return secret, nil
 	})
 
 	if err != nil || token == nil {
-		return accessTokenClaims{}, fmt.Errorf("auth token not valid: %w", err)
+		return AccessTokenClaims{}, fmt.Errorf("auth token not valid: %w", err)
 	}
 
 	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return accessTokenClaims{}, errors.New("invalid token claims")
+		return AccessTokenClaims{}, errors.New("invalid token claims")
 	}
 
 	// Subject
-	idFloat, ok := mapClaims[string(AudienceKey)].(float64)
+	idFloat, ok := mapClaims[string(SubjectKey)].(float64)
 	if !ok {
-		return accessTokenClaims{}, errors.New("user ID is not a valid float64")
+		return AccessTokenClaims{}, errors.New("user ID is not a valid float64")
 	}
 
 	// ExpiresAt
 	rawExp, exists := mapClaims[string(ExpireAtKey)]
 	if !exists {
-		return accessTokenClaims{}, errors.New("expiration date (exp) is missing")
+		return AccessTokenClaims{}, errors.New("expiration date (exp) is missing")
 	}
 
 	expFloat, ok := rawExp.(float64)
 	if !ok {
-		return accessTokenClaims{}, errors.New("expiration date is not a float64")
+		return AccessTokenClaims{}, errors.New("expiration date is not a float64")
 	}
 
 	expTime := time.Unix(int64(expFloat), 0)
@@ -129,40 +128,31 @@ func ParseAccessClaims(tokenToParse string, secret []byte) (accessTokenClaims, e
 	// IssuedAt
 	rawIAT, exists := mapClaims[string(IssuedAtKey)]
 	if !exists {
-		return accessTokenClaims{}, errors.New("expiration date (exp) is missing")
+		return AccessTokenClaims{}, errors.New("expiration date (exp) is missing")
 	}
 
 	iatFloat, ok := rawIAT.(float64)
 	if !ok {
-		return accessTokenClaims{}, errors.New("expiration date is not a float64")
+		return AccessTokenClaims{}, errors.New("expiration date is not a float64")
 	}
 
 	iatTime := time.Unix(int64(iatFloat), 0)
 
-	// Audience
-	audience, ok := mapClaims[string(AudienceKey)].(string)
-	if !ok {
-		return accessTokenClaims{}, errors.New("audience is not a valid string")
-	}
-
-	// audience := regexp.MustCompile(",").Split(audienceStr, -1)
-
 	// Parse Roles
 	rolesStr, ok := mapClaims[string(RolesKey)].(string)
 	if !ok {
-		return accessTokenClaims{}, errors.New("roles are not a valid string")
+		return AccessTokenClaims{}, errors.New("roles are not a valid string")
 	}
 
 	currentRoles, err := user.NewRolesFromRolesString(rolesStr)
 	if err != nil {
-		return accessTokenClaims{}, fmt.Errorf("unable to parse roles: %w", err)
+		return AccessTokenClaims{}, fmt.Errorf("unable to parse roles: %w", err)
 	}
 
-	return accessTokenClaims{
+	return AccessTokenClaims{
 		Subject:   user.ID(idFloat),
-		ExpiresAt: expTime,
-		IssuedAt:  iatTime,
-		Audience:  audience,
+		ExpiresAt: expTime.Unix(),
+		IssuedAt:  iatTime.Unix(),
 		Roles:     currentRoles,
 	}, nil
 }

@@ -2,14 +2,14 @@ package middleware
 
 import (
 	"fmt"
-	"net/http"
+	"time"
 
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 
 	contextUtils "github.com/sopial42/cleanic/internal/adapters/rest/utils/context"
 	jwtUtils "github.com/sopial42/cleanic/internal/adapters/rest/utils/jwt"
 	"github.com/sopial42/cleanic/internal/config"
-	"github.com/sopial42/cleanic/internal/domains/user"
 )
 
 type AuthRefreshMiddleware struct {
@@ -17,25 +17,38 @@ type AuthRefreshMiddleware struct {
 	TokenExpirationMinutes int
 }
 
-func NewAuthRefreshMiddleware(config config.AccessTokenConfig) AuthRefreshMiddleware {
+func NewAuthRefreshMiddleware(config config.RefreshTokenConfig) AuthRefreshMiddleware {
 	return AuthRefreshMiddleware{
 		secret:                 config.GetSecret(),
 		TokenExpirationMinutes: config.TokenExpirationMinutes,
 	}
 }
 
-func (a *AuthRefreshMiddleware) RequireRoles(requiredRoles user.Roles) echo.MiddlewareFunc {
+func (a *AuthRefreshMiddleware) RequireRefreshToken() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			header := c.Request().Header.Get("Authorization")
-			token, err := jwtUtils.ParseBearerHeader(header)
+			sess, err := session.Get("session", c)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse authorization header: %w", err))
+				return fmt.Errorf("unable to get refreshToken from session: %w", err)
 			}
 
-			claims, err := jwtUtils.ParseRefreshClaims(token, a.secret)
+			token := sess.Values["refresh_token"]
+			if token == nil {
+				return fmt.Errorf("unable to get refreshToken from session, not found / nil token")
+			}
+
+			tokenStr, ok := token.(string)
+			if !ok {
+				return fmt.Errorf("unable to parse signed refresh token from session: %w", err)
+			}
+
+			claims, err := jwtUtils.ParseRefreshClaims(jwtUtils.SignedRefreshToken(tokenStr), a.secret)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse auth token: %w", err))
+				return fmt.Errorf("unable to parse refreshToken: %w", err)
+			}
+
+			if claims.ExpiresAt < time.Now().Unix() {
+				return fmt.Errorf("refreshToken expired, need login")
 			}
 
 			contextUtils.SetUserIDToContext(c, claims.Subject)

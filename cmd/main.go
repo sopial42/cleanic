@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -30,7 +32,7 @@ func main() {
 	config := config.Load()
 	pgClient := persistence.NewPGClient(config.DB)
 
-	refreshMiddleware := authMiddleware.NewAuthRefreshMiddleware(config.JWT.AccessTokenConfig)
+	refreshMiddleware := authMiddleware.NewAuthRefreshMiddleware(config.JWT.RefreshTokenConfig)
 	accessMiddleware := authMiddleware.NewAuthAccessMiddleware(config.JWT.AccessTokenConfig)
 	userPersistence := userPersistence.NewPGClient(pgClient)
 	authPersistence := authPersistence.NewPGClient(pgClient)
@@ -44,10 +46,11 @@ func main() {
 
 	engine := echo.New()
 	engine.Use(middleware.Logger())
+	engine.Use(session.Middleware(sessions.NewCookieStore(config.JWT.CookieStoreConfig.Secret)))
 
 	patientHTTPHandler.SetHandler(engine, patientService, accessMiddleware)
 	userHTTPHandler.SetHandler(engine, userService, accessMiddleware)
-	authHTTPHandler.SetHandler(engine, authService, refreshMiddleware)
+	authHTTPHandler.SetHandler(engine, config.JWT.CookieStoreConfig, authService, refreshMiddleware)
 
 	go func() {
 		if err := engine.Start(":8080"); err != nil {

@@ -192,3 +192,8 @@ But it has only a short-term duration. In case of a leak, attack surface is sign
 - roles: 
 
 # TODO: test avec des durées de token de quelques secondes
+
+
+// Token features
+- 1 token per user
+- lastUpdate reason (logout / refresh)

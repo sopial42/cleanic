@@ -1,8 +1,8 @@
 package jwt
 
 var (
+	IDKey       = ClaimsKey("jti")
 	SubjectKey  = ClaimsKey("sub")
-	AudienceKey = ClaimsKey("aud")
 	IssuedAtKey = ClaimsKey("iat")
 	ExpireAtKey = ClaimsKey("exp")
 	RolesKey    = ClaimsKey("roles")

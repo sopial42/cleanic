@@ -8,7 +8,7 @@ testcases:
         database: postgres
         dsn: "{{ .pgsql_dsn }}"
         migrations: ../../testData/schemas/
-        folder: ../../testData/fixtures/auth/login
+        folder: ../../testData/fixtures/auth/refresh
         retry: 10
   - name: Refresh
     steps:

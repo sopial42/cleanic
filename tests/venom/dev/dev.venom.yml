@@ -1,0 +1,12 @@
+name: Test - reste DB for dev
+version: '2'
+
+testcases:
+  - name: reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../testData/schemas/
+        folder: ../testData/fixtures/dev
+        retry: 10

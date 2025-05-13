@@ -3,41 +3,41 @@ package persistence
 import (
 	"time"
 
+	"github.com/google/uuid"
+
+	user "github.com/sopial42/cleanic/internal/domains/user"
+	uPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/user"
 	"github.com/sopial42/cleanic/internal/adapters/rest/utils/jwt"
-	"github.com/sopial42/cleanic/internal/domains/user"
 	"github.com/uptrace/bun"
 )
 
 type tokenDAO struct {
 	bun.BaseModel `bun:"table:refresh_token"`
 
-	ID        string    `bun:"id,pk,autoincrement"` // todo Ajouter belongs-to
-	UserID    int64     `bun:"user_id,notnull"`
-	Token     string    `bun:"token,notnull"`
-	ExpiresAt time.Time `bun:"expires_at,notnull"`
-	Revoked   bool      `bun:"revoked,notnull"`
-	CreatedAt time.Time `bun:"created_at,timestamp"`
-	UpdatedAt time.Time `bun:"updated_at,timestamp"`
+	ID        uuid.UUID             `bun:"id,pk,autoincrement"`
+	UserID    int64                 `bun:"user_id,notnull"`
+	User      *uPersistence.UserDAO `bun:"rel:belongs-to,join:user_id=id"`
+	ExpiresAt time.Time             `bun:"expires_at,notnull"`
+	IssuedAt  time.Time             `bun:"issued_at,notnull"`
 }
 
-func fromTokenToTokenDAO(token jwt.RefreshToken) tokenDAO {
+func fromTokenClaimsToTokenDAO(claims jwt.RefreshTokenClaims) tokenDAO {
+	issueTime := time.Unix(claims.IssuedAt, 0)
+	expireTime := time.Unix(claims.ExpiresAt, 0)
+
 	return tokenDAO{
-		UserID:    int64(token.Claims.Subject),
-		Token:     string(token.Token),
-		ExpiresAt: token.Claims.ExpiresAt,
-		Revoked:   false,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:        claims.ID,
+		UserID:    int64(claims.Subject),
+		IssuedAt:  issueTime,
+		ExpiresAt: expireTime,
 	}
 }
 
-func fromTokenDAOToToken(dao tokenDAO) (jwt.RefreshToken, error) {
-	return jwt.RefreshToken{
-		Token: jwt.SignedRefreshToken(dao.Token),
-		Claims: jwt.RefreshTokenClaims{
-			Subject:   user.ID(dao.UserID),
-			ExpiresAt: dao.ExpiresAt,
-			IssuedAt:  dao.CreatedAt,
-		},
-	}, nil
+func fromTokenDAOToTokenClaims(tokenDAO *tokenDAO) jwt.RefreshTokenClaims {
+	return jwt.RefreshTokenClaims{
+		ID:        tokenDAO.ID,
+		Subject:   user.ID(tokenDAO.UserID),
+		IssuedAt:  tokenDAO.IssuedAt.Unix(),
+		ExpiresAt: tokenDAO.ExpiresAt.Unix(),
+	}
 }
