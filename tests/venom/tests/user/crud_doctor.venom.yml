@@ -1,4 +1,4 @@
-name: Test - CRUD user
+name: Test - CRUD user as doctor
 version: '2'
 
 testcases:
@@ -26,14 +26,14 @@ testcases:
           - result.statuscode ShouldEqual 200
         vars:
           id10001RoleDoctorHeader:
-            from: result.headers.Authorization
+            from: result.bodyjson.access_token
   - name: READ users
     steps:
       - type: http
         method: GET
         url: "{{.url}}/users"
         headers:
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 403
           - result.bodyjson ShouldHaveLength 1
@@ -43,7 +43,7 @@ testcases:
         method: GET
         url: "{{.url}}/user/1234"
         headers:
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 403
           - result.bodyjson ShouldHaveLength 1
@@ -56,7 +56,7 @@ testcases:
         url: "{{.url}}/user/roles"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "id": 10001,
@@ -83,7 +83,7 @@ testcases:
           - result.statuscode ShouldEqual 401
           - result.bodyjson ShouldHaveLength 1
           - |
-            result.bodyjson.message ShouldEqual unable to parse authorization header: empty token
+            result.bodyjson.message ShouldEqual unable to parse authorization header: empty Bearer header
       - type: http
         method: PATCH
         url: "{{.url}}/user"
@@ -105,7 +105,7 @@ testcases:
         url: "{{.url}}/user"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "id": 10001
@@ -120,7 +120,7 @@ testcases:
         url: "{{.url}}/user"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "id": 10001,
@@ -150,7 +150,7 @@ testcases:
         method: DELETE
         url: "{{.url}}/user/10002"
         headers:
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 500
           - result.bodyjson ShouldHaveLength 1
@@ -160,7 +160,7 @@ testcases:
         method: DELETE
         url: "{{.url}}/user/10001"
         headers:
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 204
           - result.bodyjson ShouldHaveLength 0

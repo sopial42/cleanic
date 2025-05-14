@@ -1,4 +1,4 @@
-name: Test - CRUD user
+name: Test - CRUD user as admin
 version: '2'
 
 testcases:
@@ -26,14 +26,14 @@ testcases:
           - result.statuscode ShouldEqual 200
         vars:
           id10001RoleAdminHeader:
-            from: result.headers.Authorization
+            from: result.bodyjson.access_token
   - name: READ users
     steps:
       - type: http
         method: GET
         url: "{{.url}}/users"
         headers:
-          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleAdminHeader}}"
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 2
@@ -47,7 +47,7 @@ testcases:
         method: GET
         url: "{{.url}}/user/10002"
         headers:
-          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleAdminHeader}}"
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 3
@@ -61,7 +61,7 @@ testcases:
         url: "{{.url}}/user/roles"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleAdminHeader}}"
         body: |
           {
             "id": 10002,
@@ -77,7 +77,7 @@ testcases:
         url: "{{.url}}/user/roles"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleAdminHeader}}"
         body: |
           {
             "id": 10002,
@@ -95,7 +95,7 @@ testcases:
         method: DELETE
         url: "{{.url}}/user/10002"
         headers:
-          Authorization: "{{.Login.id10001RoleAdminHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleAdminHeader}}"
         assertions:
           - result.statuscode ShouldEqual 204
           - result.bodyjson ShouldHaveLength 0

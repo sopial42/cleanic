@@ -17,12 +17,12 @@ type PatientHandler struct {
 	patientSVC.Service
 }
 
-func SetHandler(e *echo.Echo, service patientSVC.Service, authMiddleware middleware.AuthMiddleware) {
+func SetHandler(e *echo.Echo, service patientSVC.Service, accessMiddleware middleware.AuthAccessMiddleware) {
 	p := &PatientHandler{
 		service,
 	}
 
-	requireDoctor := authMiddleware.RequireRoles(user.Roles{user.RoleDoctor})
+	requireDoctor := accessMiddleware.RequireRoles(user.Roles{user.RoleDoctor})
 	apiV1 := e.Group("/api/v1")
 	{
 		apiV1.GET("/patients", p.getPatients, requireDoctor)

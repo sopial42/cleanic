@@ -1,0 +1,74 @@
+name: Auth refresh
+version: '2'
+
+testcases:
+  - name: Reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/auth/default
+        retry: 10
+  - name: Login
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "user@gmail.com",
+            "password": "12345678"
+          }
+        vars:
+          refreshCookie:
+            from: result.headers.Set-Cookie
+        assertions: &refresh-response
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.access_token ShouldStartWith ey
+          - result.bodyjson.token_type ShouldEqual Bearer
+          - result.bodyjson.expires_in ShouldEqual 300
+          - result.headers ShouldHaveLength 4
+          - result.headers.Set-Cookie ShouldContainSubstring session=
+          - result.headers.Set-Cookie ShouldContainSubstring Max-Age=604800;
+          - result.headers.Set-Cookie ShouldContainSubstring Path=localhost;
+          - result.headers.Set-Cookie ShouldContainSubstring Domain=localhost;
+          - result.headers.Set-Cookie ShouldContainSubstring Expires=
+          - result.headers.Set-Cookie ShouldContainSubstring HttpOnly;
+          - result.headers.Set-Cookie ShouldContainSubstring SameSite=Strict
+  - name: Refresh missing token
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/refresh"
+        headers:
+          Content-Type: application/json
+        assertions: # Missing refresh token
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - result.bodyjson.message ShouldEqual Internal Server Error
+  - name: Refresh OK
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/refresh"
+        headers:
+          Content-Type: application/json
+          Cookie: "{{.Login.refreshCookie}}"
+        assertions: *refresh-response
+  - name: Refresh with already rotated token
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/refresh"
+        headers:
+          Content-Type: application/json
+          Cookie: "{{.Login.refreshCookie}}"
+        assertions: # Using a refresh token that is already rotated by previous refresh
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - |
+              result.bodyjson.message ShouldEqual unable to refresh tokens: refresh token candidate is not anymore associated to the user

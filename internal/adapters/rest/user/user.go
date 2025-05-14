@@ -17,18 +17,19 @@ type userHandler struct {
 	uService userSVC.Service
 }
 
-func SetHandler(e *echo.Echo, service userSVC.Service, authMiddleware middleware.AuthMiddleware) {
+func SetHandler(e *echo.Echo, service userSVC.Service, access middleware.AuthAccessMiddleware) {
 	u := &userHandler{
 		service,
 	}
-	requireAdmin := authMiddleware.RequireRoles(user.Roles{user.RoleAdmin})
-	requireDoctor := authMiddleware.RequireRoles(user.Roles{user.RoleDoctor})
+
+	requireAdmin := access.RequireRoles(user.Roles{user.RoleAdmin})
+	requireDoctor := access.RequireRoles(user.Roles{user.RoleDoctor})
 	apiV1 := e.Group("/api/v1")
 	{
 		apiV1.GET("/users", u.getUsers, requireAdmin)
 		apiV1.GET("/user/:id", u.getUserByID, requireAdmin)
-		apiV1.PATCH("/user", u.updateUser, requireDoctor)
 		apiV1.PATCH("/user/roles", u.updateUserRoles, requireAdmin)
+		apiV1.PATCH("/user", u.updateUser, requireDoctor)
 		apiV1.DELETE("/user/:id", u.deleteUser, requireDoctor)
 	}
 }
@@ -37,9 +38,9 @@ func SetHandler(e *echo.Echo, service userSVC.Service, authMiddleware middleware
 // do not handle roles as it is implemented on a dedicated safe route
 // avoid the used default tag `json:"-"` in case user needs a pwd update
 type UserUpdateInput struct {
-	ID       user.ID    `json:"id"`
-	Email    user.Email `json:"email"`
-	Password string     `json:"password"`
+	ID       user.ID       `json:"id"`
+	Email    user.Email    `json:"email"`
+	Password user.Password `json:"password"`
 }
 
 func (u *userHandler) getUsers(context echo.Context) error {

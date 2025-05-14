@@ -8,4 +8,3 @@
   password: $2a$10$NDaMkxqFzEV7z3D.Vy4fHe1bCibLG1kpH2ER7B4yrbikC9gDs5n4i # 0987654
   roles: |
     ["doctor"]
-

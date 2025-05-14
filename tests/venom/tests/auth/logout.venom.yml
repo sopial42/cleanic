@@ -1,0 +1,64 @@
+name: Auth logout
+version: '2'
+
+testcases:
+  - name: Reset db
+    steps:
+      - type: dbfixtures
+        database: postgres
+        dsn: "{{ .pgsql_dsn }}"
+        migrations: ../../testData/schemas/
+        folder: ../../testData/fixtures/auth/default
+        retry: 10
+  - name: Login
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/login"
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "email": "user@gmail.com",
+            "password": "12345678"
+          }
+        vars:
+          refreshCookie:
+            from: result.headers.Set-Cookie
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldHaveLength 3
+          - result.bodyjson.access_token ShouldStartWith ey
+          - result.bodyjson.token_type ShouldEqual Bearer
+          - result.bodyjson.expires_in ShouldEqual 300
+          - result.headers ShouldHaveLength 4
+          - result.headers.Set-Cookie ShouldContainSubstring session=
+          - result.headers.Set-Cookie ShouldContainSubstring Max-Age=604800;
+          - result.headers.Set-Cookie ShouldContainSubstring Path=localhost;
+          - result.headers.Set-Cookie ShouldContainSubstring Domain=localhost;
+          - result.headers.Set-Cookie ShouldContainSubstring Expires=
+          - result.headers.Set-Cookie ShouldContainSubstring HttpOnly;
+          - result.headers.Set-Cookie ShouldContainSubstring SameSite=Strict
+  - name: Logout
+    steps:
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/logout"
+        headers:
+          Content-Type: application/json
+          Cookie: "{{.Login.refreshCookie}}"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson ShouldEqual logged out
+          - result.headers.Set-Cookie ShouldContainSubstring Max-Age=0
+      - type: http
+        method: POST
+        url: "{{.url}}/auth/refresh"
+        headers:
+          Content-Type: application/json
+          Cookie: "{{.Login.refreshCookie}}"
+        assertions:
+          - result.statuscode ShouldEqual 500
+          - result.bodyjson ShouldHaveLength 1
+          - |
+            result.bodyjson.message ShouldEqual unable to refresh tokens: unable to get refresh token from DB: unable to get refresh token: sql: no rows in result set

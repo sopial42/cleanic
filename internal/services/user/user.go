@@ -25,7 +25,7 @@ func (u *userSVC) Create(ctx context.Context, newUser user.User) (user.User, err
 
 	// Hash password
 	hash, _ := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
-	newUser.Password = string(hash)
+	newUser.Password = user.Password(hash)
 
 	// Check email is correct
 	if !newUser.Email.IsValid() {
@@ -96,7 +96,7 @@ func (u *userSVC) UpdateUser(ctx context.Context, reqUserID user.ID, newUser use
 
 	if newUser.Password != "" {
 		hash, _ := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
-		newUser.Password = string(hash)
+		newUser.Password = user.Password(hash)
 	}
 
 	userUpdated, err := u.persistence.UpdateUser(ctx, newUser)

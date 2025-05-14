@@ -1,0 +1,5 @@
+- id: 10001
+  email: user@gmail.com
+  password: $2a$10$ySsu9jmv2UmG.4UF7JDkW.uZVo9Cee2QCkfkoc.6tSE4YAUmsMnva # 0987654
+  roles: |
+    ["doctor"]

@@ -8,11 +8,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
 	userCLI "github.com/sopial42/cleanic/internal/adapters/clients/user"
 	persistence "github.com/sopial42/cleanic/internal/adapters/persistence"
+	authPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/auth"
 	patientPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/patient"
 	userPersistence "github.com/sopial42/cleanic/internal/adapters/persistence/user"
 	authHTTPHandler "github.com/sopial42/cleanic/internal/adapters/rest/auth"
@@ -29,22 +32,25 @@ func main() {
 	config := config.Load()
 	pgClient := persistence.NewPGClient(config.DB)
 
-	authMiddleware := authMiddleware.NewAuthMiddleware(config.JWT)
+	refreshMiddleware := authMiddleware.NewAuthRefreshMiddleware(config.JWT.RefreshTokenConfig)
+	accessMiddleware := authMiddleware.NewAuthAccessMiddleware(config.JWT.AccessTokenConfig)
 	userPersistence := userPersistence.NewPGClient(pgClient)
+	authPersistence := authPersistence.NewPGClient(pgClient)
 	userService := userSVC.NewUserService(userPersistence)
 
 	userClient := userCLI.NewInMemoryUserClient(userService)
-	authService := authSVC.NewAuthService(userClient, config.JWT)
+	authService := authSVC.NewAuthService(userClient, config.JWT, authPersistence)
 
 	patientPersistence := patientPersistence.NewPGClient(pgClient)
 	patientService := patientSVC.NewPatientService(patientPersistence)
 
 	engine := echo.New()
 	engine.Use(middleware.Logger())
+	engine.Use(session.Middleware(sessions.NewCookieStore(config.JWT.CookieStoreConfig.Secret)))
 
-	patientHTTPHandler.SetHandler(engine, patientService, authMiddleware)
-	userHTTPHandler.SetHandler(engine, userService, authMiddleware)
-	authHTTPHandler.SetHandler(engine, authService)
+	patientHTTPHandler.SetHandler(engine, patientService, accessMiddleware)
+	userHTTPHandler.SetHandler(engine, userService, accessMiddleware)
+	authHTTPHandler.SetHandler(engine, config.JWT.CookieStoreConfig, authService, refreshMiddleware)
 
 	go func() {
 		if err := engine.Start(":8080"); err != nil {

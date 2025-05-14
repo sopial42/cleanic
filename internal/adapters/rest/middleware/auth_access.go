@@ -12,35 +12,37 @@ import (
 	"github.com/sopial42/cleanic/internal/domains/user"
 )
 
-type AuthMiddleware struct {
-	secret []byte
+type AuthAccessMiddleware struct {
+	secret                 []byte
+	TokenExpirationMinutes int
 }
 
-func NewAuthMiddleware(jwtConfig config.JWTConfig) AuthMiddleware {
-	return AuthMiddleware{
-		secret: jwtConfig.GetSecret(),
+func NewAuthAccessMiddleware(config config.AccessTokenConfig) AuthAccessMiddleware {
+	return AuthAccessMiddleware{
+		secret:                 config.GetSecret(),
+		TokenExpirationMinutes: config.TokenExpirationMinutes,
 	}
 }
 
-func (a *AuthMiddleware) RequireRoles(requiredRoles user.Roles) echo.MiddlewareFunc {
+func (a *AuthAccessMiddleware) RequireRoles(requiredRoles user.Roles) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			header := c.Request().Header.Get("Authorization")
-			token, err := jwtUtils.NewJWTFromAuthHeaderString(header)
+			token, err := jwtUtils.ParseBearerHeader(header)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse authorization header: %w", err))
 			}
 
-			claims, err := token.ParseClaims(a.secret)
+			claims, err := jwtUtils.ParseAccessClaims(token, a.secret)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("unable to parse auth token: %w", err))
 			}
 
-			if err := claims.UserRoles.ValidateRequiredRoles(requiredRoles); err != nil {
+			if err := user.ValidateRequiredRoles(requiredRoles, claims.Roles); err != nil {
 				return echo.NewHTTPError(http.StatusForbidden, fmt.Errorf("unauthorized resource: %w", err))
 			}
 
-			contextUtils.SetUserIDAndRolesToContext(c, claims.UserID, claims.UserRoles)
+			contextUtils.SetUserIDAndRolesToContext(c, claims.Subject, claims.Roles)
 			return next(c)
 		}
 	}

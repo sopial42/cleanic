@@ -16,10 +16,10 @@ const (
 )
 
 type User struct {
-	ID       ID     `json:"id"`
-	Email    Email  `json:"email"`
-	Password string `json:"-"`
-	Roles    Roles  `json:"roles"`
+	ID       ID       `json:"id"`
+	Email    Email    `json:"email"`
+	Password Password `json:"-"`
+	Roles    Roles    `json:"roles"`
 }
 
 type ID int64
@@ -28,6 +28,12 @@ type Email string
 
 func (e Email) IsValid() bool {
 	return regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`).MatchString(string(e))
+}
+
+type Password string
+
+func (p Password) IsValid() bool {
+	return len(p) >= 8
 }
 
 type Roles []Role
@@ -61,7 +67,7 @@ func NewRolesFromRolesString(rolesString string) (r Roles, err error) {
 	return r, err
 }
 
-func (currentRoles Roles) ValidateRequiredRoles(requiredRoles Roles) error {
+func ValidateRequiredRoles(requiredRoles Roles, currentRoles Roles) error {
 	var missing Roles
 
 	// isAdminStandaloneRole true will force validation if admin role is present
@@ -98,6 +104,7 @@ func (r Roles) String() string {
 	for i, role := range r {
 		parts[i] = role.String()
 	}
+
 	return strings.Join(parts, ",")
 }
 

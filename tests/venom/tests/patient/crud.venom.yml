@@ -26,7 +26,7 @@ testcases:
           - result.statuscode ShouldEqual 200
         vars:
           id10001RoleDoctorHeader:
-            from: result.headers.Authorization
+            from: "result.bodyjson.access_token"
   - name: CREATE two new patient
     steps:
       - type: http
@@ -34,7 +34,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Axel",
@@ -53,7 +53,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Camille",
@@ -73,7 +73,7 @@ testcases:
         url: "{{.url}}/patient"
         headers:
           Content-Type: application/json
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         body: |
           {
             "firstname": "Axel",
@@ -89,7 +89,7 @@ testcases:
         method: GET
         url: "{{.url}}/patients"
         headers: &authHeader
-          Authorization: "{{.Login.id10001RoleDoctorHeader}}"
+          Authorization: "Bearer {{.Login.id10001RoleDoctorHeader}}"
         assertions:
           - result.statuscode ShouldEqual 200
           - result.bodyjson ShouldHaveLength 2

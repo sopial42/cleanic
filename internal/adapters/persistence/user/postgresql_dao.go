@@ -5,7 +5,7 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type userDAO struct {
+type UserDAO struct {
 	bun.BaseModel `bun:"table:users"`
 
 	ID       int64    `bun:"id,pk,autoincrement"`
@@ -14,11 +14,11 @@ type userDAO struct {
 	Roles    []string `bun:"roles,type:jsonb,notnull"`
 }
 
-func userFromDomainToDAO(user user.User) userDAO {
-	userDAO := userDAO{
+func userFromDomainToDAO(user user.User) UserDAO {
+	userDAO := UserDAO{
 		ID:       int64(user.ID),
 		Email:    string(user.Email),
-		Password: user.Password,
+		Password: string(user.Password),
 	}
 
 	roles := make([]string, len(user.Roles))
@@ -30,11 +30,11 @@ func userFromDomainToDAO(user user.User) userDAO {
 	return userDAO
 }
 
-func userFromDAOToDomain(userDAO userDAO) user.User {
+func userFromDAOToDomain(userDAO UserDAO) user.User {
 	domainUser := user.User{
 		ID:       user.ID(userDAO.ID),
 		Email:    user.Email(userDAO.Email),
-		Password: userDAO.Password,
+		Password: user.Password(userDAO.Password),
 	}
 
 	// Convert roles from string slice to domain roles
@@ -47,7 +47,7 @@ func userFromDAOToDomain(userDAO userDAO) user.User {
 	return domainUser
 }
 
-func userFromDAOsToDomains(userDAOs []userDAO) []user.User {
+func userFromDAOsToDomains(userDAOs []UserDAO) []user.User {
 	users := make([]user.User, len(userDAOs))
 	for i, userDAO := range userDAOs {
 		users[i] = userFromDAOToDomain(userDAO)

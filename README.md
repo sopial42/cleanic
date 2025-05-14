@@ -35,9 +35,9 @@ $ make dependencies
 $ make run
 ```
 
-- In another term, run the integration tests to init the DB with test fixtures
+- In another term, install DB schemas and/or clean the DB content
 ```bash
-$ make integration
+$ make dev
 ```
 
 
@@ -164,3 +164,8 @@ But it has only a short-term duration. In case of a leak, attack surface is sign
 - Secure long-term authentication with `Refresh Tokens`
 - Minimized exposure via short-lived `Access Tokens`
 - Seamless UX with automatic token refresh
+
+### Refresh
+
+- Login service retourne AccessToken + RefreshToken
+- Stocker RefreshToken en DB    
